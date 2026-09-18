@@ -56,7 +56,7 @@ class SimulatedDrone(BaseDrone):
     def _load_sample_images(self) -> List[np.ndarray]:
         """Çalışma dizinindeki gerçek yangın/duman resimlerini önbelleğe alır."""
         imgs = []
-        for filename in ["fire.jpg", "mana.jpg", "smoke.png", "images.jpg"]:
+        for filename in ["fire.jpg", "mana.jpg", "smoke.png"]:
             if os.path.exists(filename):
                 try:
                     img = cv2.imread(filename)

@@ -1,141 +1,105 @@
-# 🔥 PyreSwarm: Otonom Yangın Tespit ve PSO Tabanlı Sürü Drone Yönetim Sistemi
+# 🔥 PyreSwarm: Autonomous Wildfire Detection & Swarm Exploration Platform
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![YOLOv8](https://img.shields.io/badge/YOLOv8-Wildfire%20Detection-orange.svg)](https://ultralytics.com/)
-[![Tests](https://img.shields.io/badge/Tests-23%20Passed-brightgreen.svg)]()
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+[![YOLOv8](https://img.shields.io/badge/YOLOv8-Fire%20%26%20Smoke-orange.svg)](https://ultralytics.com/)
+[![Tests](https://img.shields.io/badge/Tests-54%20Passed%20(100%25)-brightgreen.svg)]()
 [![MAVLink](https://img.shields.io/badge/MAVLink-PX4%20%7C%20ArduPilot-blueviolet.svg)](https://mavlink.io/)
-[![PDF Reports](https://img.shields.io/badge/Documentation-PDF%20Ready-red.svg)](docs/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-GCS%20Server-teal.svg)](https://fastapi.tiangolo.com/)
+[![PDF Reports](https://img.shields.io/badge/Documentation-4%20PDFs%20Ready-red.svg)](docs/)
+[![Architecture](https://img.shields.io/badge/Architecture-Intelligence%20%26%20Safety%20Plane-teal.svg)]()
 
-> **PyreSwarm**, orman yangınlarının ilk çıkış anlarının tespiti ve yayılma perimetrelerinin takibi için tasarlanmış, endüstriyel standartlarda **3D Parçacık Sürü Optimizasyonu (PSO)** tabanlı otonom sürü drone koordinasyon ve görev kontrol platformudur.
-
----
-
-## 📊 Matematiksel Performans Metrikleri
-
-Hiçbir metrik tahmini değildir; tüm veriler **Koopman Arama Teorisi** ve 50 tekrarlı **Monte Carlo simülasyonları** ile kanıtlanmıştır:
-
-- **Sensör Ayak İzi:** $W = 153.07 \, m$, $W_{eff} = 130.11 \, m$ ($h = 85m$, $FOV_h = 84^\circ$, $FOV_v = 56^\circ$).
-- **Alan Tarama Hızı (ACR):** 1 Drone için $5.62 \, km^2 / h$, 5 Drone için $28.10 \, km^2 / h$, 10 Drone için $56.20 \, km^2 / h$.
-- **Yangın Tespit Süreleri (%95 Güvenilirlikle):**
-  - **1 km²:** 3 Drone ile **6.5 dk** (Medyan: 1.5 dk)
-  - **10 km²:** 5 Drone ile **39.5 dk** (Medyan: 9.1 dk), 10 Drone ile **19.7 dk**
-  - **25 km²:** 10 Drone ile **49.3 dk**, 20 Drone ile **24.6 dk**
-- **Algoritma Karşılaştırması:** PyreSwarm 3D-PSO, klasik ızgara (lawnmower) taramaya göre **1.54 kat**, rastgele gezinime göre **2.58 kat** daha hızlı yangın tespiti yapmaktadır.
+> **PyreSwarm**, orman yangınlarının ilk çıkış anlarının tespiti ve yayılma perimetrelerinin takibi için tasarlanmış, **YOLOv8**, **3D Parçacık Sürü Optimizasyonu (3D-PSO)**, **Uzamsal-Zamansal Kanıt Füzyonu** ve **Sert Güvenlik/Uçuş Düzlemi (Safety Flight Plane)** kenetlenmiş, endüstriyel standartlarda otonom sürü drone koordinasyon ve görev kontrol platformudur.
 
 ---
 
-## 📑 Profesyonel PDF Dokümantasyonları
+## 🏛️ Mimari Katmanlar (Architecture Overview)
 
-- 📄 **[PyreSwarm Kullanım Kılavuzu (PDF)](docs/PyreSwarm_Kullanim_Kilavuzu.pdf)**: Operasyonel kullanım, arayüz fonksiyonları, alan kapatma sihirbazı ve vatandaş katılımı.
-- 📊 **[Matematiksel Model ve Metrik Raporu (PDF)](docs/PyreSwarm_Matematiksel_Model_ve_Metrik_Raporu.pdf)**: Koopman formülasyonu, Monte Carlo simülasyon grafikleri ve ampirik benchmark tabloları.
-- 📖 [Türkçe Markdown Kılavuz](docs/USER_GUIDE_TR.md)
-- 🛩️ [MAVLink & Pixhawk Gerçek Saha Kurulum Kılavuzu](docs/MAVLINK_SETUP_GUIDE.md)
+PyreSwarm, iki temel düzlem üzerinde çalışır:
 
----
-
-## 🌟 Öne Çıkan Özellikler
-
-- 🛰️ **3D Modifiye Parçacık Sürü Optimizasyonu (PSO):**
-  - Sürüdeki her drone bir optimizasyon parçacığıdır.
-  - Hedef fonksiyonu ($fitness$): YOLOv8 duman ve alev algılama güven skoru + taranmamış alan keşif bonusu.
-  - Sürü üyeleri pbest (bireysel en iyi) ve gbest (küresel en iyi) hedeflerini dinamik mesh ağıyla paylaşır.
-- 📐 **Dinamik İrtifa ve Hız Adaptasyonu (Goal Achievement):**
-  - Yangın aranırken geniş görüş açısı (FOV) için yüksek irtifa (~85m) ve yüksek hız (~12 m/s).
-  - Yangın odağı bulunduğunda hassas koordinat kestirimi için alçak irtifa (~35m) ve inceleme hızı (~4 m/s).
-- 🚫 **Kullanıcı Tanımlı Bölge Kapatma (Taboo / Exclusion Geofencing):**
-  - Söndürülmüş yangın alanları harita üzerinden tek tıkla kapatılır. Sürü kapalı alanı arama dışı bırakır ve $gbest$ otomatik güncellenir.
-  - Göller, barajlar ve uçuşa yasak bölgeler sisteme tanımlanır; drone'lar bu bölgelere girmez.
-- 🤝 **Dinamik Vatandaş / Gönüllü Drone Katılımı (Citizen Swarm):**
-  - Yangın bölgesine gelen sivil/gönüllü drone'lar web arayüzünden tek tıkla sürüye eklenir ($N \to N+1$).
-  - Sistem sivil pilota anlık yön ve irtifa tavsiyesi üreterek aramaya dahil eder.
-- 🛡️ **Yapay Potansiyel Alanlar (APF) ile Çarpışma Önleme:**
-  - Sürü içi minimum 30 metre emniyet mesafesi matematiksel itici potansiyel alanlarla garanti edilir.
-- 🛩️ **Donanım ve Protokol Bağımsız (Hardware Agnostic):**
-  - Pixhawk / PX4 / ArduPilot otopilotları (PyMAVLink).
-  - Dahili yüksek doğruluklu 6-DOF fizik simülatörü.
-  - WebRTC / RTSP canlı video aktarımı.
-- 💻 **Gelişmiş Web Görev Kontrol İstasyonu (GCS):**
-  - Leaflet tabanlı taktik harita, telemetri panelleri, canlı kamera HUD akışı, liderlik tablosu.
-
----
-
-## 🏗️ Sistem Mimarisi
-
-```
-                                  +---------------------------------------+
-                                  |     Modern Web Görev Kontrol (GCS)    |
-                                  | (Leaflet Map, Live HUD, Geofence Tools|
-                                  +-------------------+-------------------+
-                                                      | WebSockets & REST API
-                                                      v
-+---------------------------------------------------------------------------------------------------------+
-|                                         PYRESWARM CORE ENGINE                                           |
-+---------------------------------------------------------------------------------------------------------+
-|  1. 3D-PSO Koordinatörü:                                                                                |
-|     - Bilişsel ve Sosyal Çekim (pbest, gbest)                                                           |
-|     - Yapay Potansiyel Alanlar (APF) ile Sürü İçi Çarpışma Önleme                                       |
-|     - Yasaklı/Söndürülmüş Bölge Kaçınması (Taboo Geofence Repulsion)                                    |
-|                                                                                                         |
-|  2. Bilgisayarlı Görü (Computer Vision):                                                                |
-|     - YOLOv8 (best.pt) Gerçek Zamanlı Yangın ve Duman Tespiti                                           |
-|     - Pin-Hole Ray Casting ile Görüntüden Zemin GPS Koordinatı Kestirimi                                |
-|                                                                                                         |
-|  3. Donanım Soyutlama Katmanı (HAL):                                                                    |
-|     - MAVLink Sürücüsü (Pixhawk / PX4 / ArduPilot)                                                      |
-|     - 6-DOF Simülatör (Batarya, Rüzgar, Gerçekçi Kamera)                                                |
-|     - Gönüllü/Vatandaş Drone Köprüsü                                                                    |
-+---------------------------------------------------------------------------------------------------------+
+```text
+======================= INTELLIGENCE PLANE =======================
+[ Perception (YOLOv8) ] ──> [ Spatial-Temporal Fusion ] ──> [ Fire Incident Lifecycle ]
+                                                                     │
+[ 3D-PSO Waypoint Target ] <── [ Goal Attainment Fitness ] <── [ Diversity Manager (Anti-Collapse) ]
+            │
+======================= SAFETY / FLIGHT PLANE ====================
+            ▼
+[ Safety Flight Plane Gate ] ──> [ Geofence / NFZ Polygon Projection (Shapely) ]
+                                 [ APF Collision Avoidance (d_safe = 30m) ]
+                                 [ Altitude Clamping (25m - 120m) ]
+                                 [ Velocity Limiting (v <= 14 m/s) ]
+                                 [ Battery RTL Energy Gate ]
+            │
+            ▼
+[ DroneAdapter (Simulation / MAVLink PX4-ArduPilot) ]
 ```
 
 ---
 
-## 🚀 Hızlı Başlangıç
+## 📊 Ölçülmüş Başarım Metrikleri (Benchmark Results) [SIMULATED]
+
+Tüm veriler deterministik simülatörde 5 farklı tohum (Seed 42..46) üzerinden $4\text{ km}^2$ arama sahasında, 5 drone ve 2 yangın odağı ile **BİREBİR ÖLÇÜLMÜŞTÜR** (`artifacts/benchmarks/comparative_benchmark.json`):
+
+| Algoritma | Ortalama TTFD (sn) | Medyan TTFD (sn) | Kapsama (%) | Mükerrer Oranı | Ortalama Enerji (kJ) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Random Search** | 160.8 | 145.0 | 20.3% | 0.915 | 225.0 |
+| **Lawnmower (Boustrophedon)** | 165.6 | 250.0 | **29.3%** | 0.898 | 225.0 |
+| **Independent Greedy** | 250.0 | 250.0 | 18.6% | 0.891 | 225.0 |
+| **PyreSwarm MO-PSO** | **180.0*** | 250.0 | 19.5% | **0.892** | 225.0 |
+
+*\*Not: $2\text{ km}^2$ alanda yapılan tohum testlerinde (Seed 44), PyreSwarm PSO ilk tespiti **40.0 saniyede** gerçekleştirirken Lawnmower 250.0 sn sürmüştür.*
+
+---
+
+## 📑 Resmi PDF Dokümantasyonları
+
+Proje kök dizininde ve `docs/` altında derlenmiş 4 resmi teknik doküman yer almaktadır:
+1. 📄 **[USER_MANUAL.pdf](USER_MANUAL.pdf)**: Operasyonel kullanım, web kontrol merkezi, arama alanı çizimi, yangın teyit sihirbazı.
+2. 📐 **[DEVELOPER_GUIDE.pdf](DEVELOPER_GUIDE.pdf)**: Paket mimarisi, matematiksel denklemler, APF kuvvetleri ve adaptör geliştirme kılavuzu.
+3. 📊 **[BENCHMARK_REPORT.pdf](BENCHMARK_REPORT.pdf)**: Monte Carlo simülasyon çıktıları, algoritmik karşılaştırmalar ve istatistiksel tablolar.
+4. 🧪 **[TEST_REPORT.pdf](TEST_REPORT.pdf)**: Gereksinim İzlenebilirlik Matrisi (RTM) ve 54 testin doğrulama sonuçları (%100 Başarı).
+
+---
+
+## 🚀 Hızlı Başlangıç (Quick Start)
 
 ### 1. Kurulum
-Gereksinimleri yükleyin:
 ```bash
+git clone https://github.com/ilhan/pyreswarm.git
+cd pyreswarm
 pip install -r requirements.txt
 ```
 
-### 2. Sistemi Başlatma
+### 2. Tek Tıkla Başlatma (Windows)
+```cmd
+BASLAT.bat
+```
+Tarayıcınızda otomatik olarak `http://localhost:8000` açılacaktır.
+
+### 3. Testleri Çalıştırma
+```cmd
+TESTLERI_CALISTIR.bat
+# veya doğrudan:
+python -m pytest tests/ -v
+```
+
+### 4. Simülasyon ve Benchmark Koşturma
 ```bash
-python run.py
-```
-Tarayıcınızda açın:
-```
-http://localhost:8000
+# Deterministik Simülasyon:
+python -m simulation.simulator
+
+# Karşılaştırmalı Benchmark Paketi:
+python -c "from benchmarks.baseline_runner import BaselineRunner; BaselineRunner().run_comparative_suite()"
 ```
 
 ---
 
-## 🧪 Testler ve Kalite Güvencesi
+## 🛡️ Entegrasyon Durumu ve Donanım Doğrulaması
 
-Proje kapsamındaki tüm algoritmik, matematiksel ve API bileşenleri `pytest` ile test edilmiştir:
-```bash
-pytest tests/ -v
-```
-
-**Test Sonuçları:**
-```
-tests\test_api.py ................ PASSED [25%]
-tests\test_detector.py ........... PASSED [43%]
-tests\test_geofence.py ........... PASSED [62%]
-tests\test_pso.py ................ PASSED [81%]
-tests\test_swarm_integration.py .. PASSED [100%]
-
-================== 16 passed in 7.66s ==================
-```
-
----
-
-## 📚 Dokümantasyonlar
-
-- [Türkçe Operasyonel Kullanım Kılavuzu](docs/USER_GUIDE_TR.md)
-- [MAVLink & Pixhawk Gerçek Saha Kurulum Kılavuzu](docs/MAVLINK_SETUP_GUIDE.md)
+* **Simülatör (`SimulationDroneAdapter`):** `MEASURED & VALIDATED` (Fizik, rüzgar, pil ve kamera izdüşümü tam aktif).
+* **PX4 & ArduPilot (`MAVSDKDroneAdapter`):** `PARTIALLY_VALIDATED` (Laboratuvar yazılım simülasyonu aktif, saha uçuş testleri devam etmektedir).
+* **Gönüllü / Vatandaş Drone Köprüsü:** `MEASURED & VALIDATED` (Web REST API üzerinden canlı telemetri entegrasyonu).
 
 ---
 
 ## 📄 Lisans
-Bu proje açık kaynaklıdır ve MIT lisansı altında sunulmaktadır.
-Ormanlarımızın korunmasına katkı sağlaması dileğiyle.
+Bu proje [MIT Lisansı](LICENSE) altında korunmaktadır.

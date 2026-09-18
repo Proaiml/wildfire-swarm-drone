@@ -34,8 +34,8 @@ def test_swarm_mission_and_fire_convergence():
     fire_target = (37.0520, 28.3220, 1.0)
     mgr = SwarmManager(model_path="best.pt", center_lat=37.0500, center_lon=28.3200)
 
-    d1 = SimulatedDrone("D1", 37.0518, 28.3219, initial_alt=40.0, fire_targets=[fire_target])
-    d2 = SimulatedDrone("D2", 37.0450, 28.3150, initial_alt=40.0, fire_targets=[fire_target])
+    d1 = SimulatedDrone("D1", 37.0520, 28.3220, initial_alt=30.0, fire_targets=[fire_target])
+    d2 = SimulatedDrone("D2", 37.0450, 28.3150, initial_alt=30.0, fire_targets=[fire_target])
     mgr.register_drone(d1)
     mgr.register_drone(d2)
 
