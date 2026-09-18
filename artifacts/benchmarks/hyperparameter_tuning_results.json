@@ -1,0 +1,69 @@
+{
+  "best_config": {
+    "config_name": "Aşırı İşbirliği (High-Social Collapse)",
+    "w_max": 0.6,
+    "w_min": 0.3,
+    "c1_init": 0.8,
+    "c2_init": 2.8,
+    "taboo_radius_m": 30.0,
+    "ttfd_mean_sec": 220.0,
+    "coverage_mean_pct": 21.88,
+    "redundant_ratio_mean": 0.87,
+    "energy_mean_kj": 198.0,
+    "composite_score": 11.07
+  },
+  "all_evaluations": [
+    {
+      "config_name": "Aşırı İşbirliği (High-Social Collapse)",
+      "w_max": 0.6,
+      "w_min": 0.3,
+      "c1_init": 0.8,
+      "c2_init": 2.8,
+      "taboo_radius_m": 30.0,
+      "ttfd_mean_sec": 220.0,
+      "coverage_mean_pct": 21.88,
+      "redundant_ratio_mean": 0.87,
+      "energy_mean_kj": 198.0,
+      "composite_score": 11.07
+    },
+    {
+      "config_name": "PyreSwarm Meta-Optimized MO-PSO",
+      "w_max": 0.85,
+      "w_min": 0.4,
+      "c1_init": 2.0,
+      "c2_init": 1.2,
+      "taboo_radius_m": 150.0,
+      "ttfd_mean_sec": 220.0,
+      "coverage_mean_pct": 20.71,
+      "redundant_ratio_mean": 0.859,
+      "energy_mean_kj": 198.0,
+      "composite_score": 9.59
+    },
+    {
+      "config_name": "Klasik / Naive PSO",
+      "w_max": 0.72,
+      "w_min": 0.72,
+      "c1_init": 1.5,
+      "c2_init": 2.5,
+      "taboo_radius_m": 0.0,
+      "ttfd_mean_sec": 220.0,
+      "coverage_mean_pct": 20.49,
+      "redundant_ratio_mean": 0.857,
+      "energy_mean_kj": 198.0,
+      "composite_score": 9.31
+    },
+    {
+      "config_name": "Aşırı Keşif (High-Exploration)",
+      "w_max": 0.9,
+      "w_min": 0.7,
+      "c1_init": 2.8,
+      "c2_init": 0.4,
+      "taboo_radius_m": 80.0,
+      "ttfd_mean_sec": 220.0,
+      "coverage_mean_pct": 20.0,
+      "redundant_ratio_mean": 0.859,
+      "energy_mean_kj": 198.0,
+      "composite_score": 8.52
+    }
+  ]
+}

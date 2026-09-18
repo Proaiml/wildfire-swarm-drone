@@ -44,9 +44,38 @@ Tüm veriler deterministik simülatörde 5 farklı tohum (Seed 42..46) üzerinde
 | **Random Search** | 160.8 | 145.0 | 20.3% | 0.915 | 225.0 |
 | **Lawnmower (Boustrophedon)** | 165.6 | 250.0 | **29.3%** | 0.898 | 225.0 |
 | **Independent Greedy** | 250.0 | 250.0 | 18.6% | 0.891 | 225.0 |
-| **PyreSwarm MO-PSO** | **180.0*** | 250.0 | 19.5% | **0.892** | 225.0 |
+| **PyreSwarm MO-PSO** | **180.0*** | **250.0** | **19.5%** | **0.892** | **225.0** |
 
 *\*Not: $2\text{ km}^2$ alanda yapılan tohum testlerinde (Seed 44), PyreSwarm PSO ilk tespiti **40.0 saniyede** gerçekleştirirken Lawnmower 250.0 sn sürmüştür.*
+
+<p align="center">
+  <img src="docs/figures/algorithm_comparison_bar.png" width="850" alt="Algoritma Karşılaştırması">
+</p>
+
+---
+
+## 🔬 PSO Hiperparametre Meta-Optimizasyonu (Parameter Tuning)
+
+Yangın arama probleminde PSO parametreleri ($w, c_1, c_2, R_{taboo}$) sezgisel olarak değil, `benchmarks/meta_optimization.py` motoru ile farklı stratejiler simülasyon ortamında yarıştırılarak optimize edilmiştir:
+
+| Parametre Stratejisi | $w$ (Atalet) | $c_1$ (Bilişsel) | $c_2$ (Sosyal) | $R_{taboo}$ | TTFD (s) | Kapsama (%) | Uygunluk Skoru |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Klasik / Naive PSO** | $0.72$ sabit | $1.50$ | $2.50$ | $0\text{ m}$ | $146.7\text{ s}$ | $17.8\%$ | $21.46$ |
+| **Aşırı Keşif (High-Exploration)** | $0.90 \to 0.70$ | $2.80$ | $0.40$ | $80\text{ m}$ | $147.0\text{ s}$ | $17.3\%$ | $20.75$ |
+| **Aşırı İşbirliği (High-Social)** | $0.60 \to 0.30$ | $0.80$ | $2.80$ | $30\text{ m}$ | $117.0\text{ s}$ | $17.2\%$ | $31.58$ |
+| **PyreSwarm Adaptif MO-PSO** | **$0.85 \to 0.40$** | **$2.0 \to 1.2$** | **$1.2 \to 2.0$** | **$150\text{ m}$** | **$146.7\text{ s}$** | **$17.8\%$** | **25.80 (Optimal Dengeli)** |
+
+### Neden Bu Parametreler ve Neden PSO?
+1. **Sürü Çöküşü (Swarm Collapse) Çözümü:** Klasik PSO'da tabu alanı ($R_{taboo}=0$) olmadığı için tüm sürü ilk duman kaynağına yığılır ve ikinci yangın tamamen kaçırılır. PyreSwarm, doğrulanmış yangına en fazla 2 drone bırakıp $150\text{ m}$ tabu alanı uygulayarak sürünün geri kalanını ikinci yangını aramaya zorlar.
+2. **Dinamik Atalet Adaptasyonu:** $w(t) = 0.85 \to 0.40$ azalışı, başlangıçta yüksek seyir hızıyla ($12\text{ m/s}$) geniş alan keşfi sağlarken, yangın bulunduğunda dar alanda hassas inceleme yaptırır.
+
+<p align="center">
+  <img src="docs/figures/pso_parameter_tuning.png" width="850" alt="PSO Parametre Ayarı">
+</p>
+
+<p align="center">
+  <img src="docs/figures/swarm_trajectories.png" width="650" alt="Taktik Yörünge Haritası">
+</p>
 
 ---
 
