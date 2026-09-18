@@ -4,7 +4,7 @@ color 0B
 cls
 
 echo ===============================================================================
-echo     PYRESWARM: 23 BIRIM VE ENTEGRASYON TESTI KOSUTURULUYOR
+echo     PYRESWARM: 57 BIRIM VE ENTEGRASYON TESTI KOSUTURULUYOR
 echo ===============================================================================
 echo.
 

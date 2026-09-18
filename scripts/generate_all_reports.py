@@ -416,11 +416,11 @@ def generate_test_report(output_path: str = "docs/TEST_REPORT.pdf"):
 
     story.append(Paragraph("1. Test Sonuçları Özeti [MEASURED]", st['h1']))
     story.append(Paragraph(
-        "<b>Toplam Yürütülen Test:</b> 54<br/>"
-        "<b>Başarılı (PASS):</b> 54 (%100)<br/>"
+        "<b>Toplam Yürütülen Test:</b> 57<br/>"
+        "<b>Başarılı (PASS):</b> 57 (%100)<br/>"
         "<b>Başarısız (FAIL):</b> 0 (%0)<br/>"
         "<b>Test Ortamı:</b> pytest 9.0.3 — Python 3.11.9 (Windows x64)<br/>"
-        "<b>Yürütme Süresi:</b> 4.06 saniye",
+        "<b>Yürütme Süresi:</b> 4.27 saniye",
         st['body']
     ))
 
@@ -444,6 +444,7 @@ def generate_test_report(output_path: str = "docs/TEST_REPORT.pdf"):
         ["REQ-COMM-003", "İletişim Kaybı Watchdog Durumları", "test_communication_and_membership.py", "PASS"],
         ["REQ-INVT-001", "Emniyet Değişmezleri (Invariants)", "test_invariants.py", "PASS"],
         ["REQ-FUZZ-001", "NaN / Sonsuzluk / Fuzzing Girdi Denetimi", "test_fuzz_and_edge_cases.py", "PASS"],
+        ["REQ-ALGO-030", "30 Optimizasyon Algoritması Mega-Benchmark", "test_multi_algorithm_suite.py", "PASS"],
         ["REQ-E2E-001", "Kabul Senaryosu (Requirement 81 Akışı)", "test_e2e_acceptance.py", "PASS"]
     ]
 
