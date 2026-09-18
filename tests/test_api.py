@@ -9,6 +9,12 @@ from web.app import app
 client = TestClient(app)
 
 
+def test_api_index():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "PYRESWARM" in response.text
+
+
 def test_api_swarm_state():
     response = client.get("/api/swarm/state")
     assert response.status_code == 200

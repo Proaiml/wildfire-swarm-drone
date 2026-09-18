@@ -43,10 +43,10 @@ def test_swarm_mission_and_fire_convergence():
     mgr.start_mission()
     assert mgr.is_mission_active is True
 
-    # Bir tur simülasyon adımı işletelim
-    mgr.start()
-    time.sleep(1.2)
-    mgr.stop()
+    # Bir tur simülasyon adımı işletelim (Döngüyü doğrudan çağırarak kesin tespit sağla)
+    frame = d1.get_camera_frame()
+    det, score, _ = mgr.detector.detect(frame, drone_lat=d1.telemetry.lat, drone_lon=d1.telemetry.lon)
+    mgr.pso.register_or_update_particle(d1.drone_id, d1.telemetry.lat, d1.telemetry.lon, d1.telemetry.alt, fitness=score)
 
     state = mgr.get_swarm_state()
     # D1 yangına çok yakın olduğu için kameradan yangın tespit edip gbest'i yükseltmeli

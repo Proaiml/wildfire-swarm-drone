@@ -7,7 +7,7 @@ import os
 import asyncio
 import json
 from typing import List, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Response
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -131,8 +131,8 @@ class MAVLinkRegisterRequest(BaseModel):
 
 # REST API Uç Noktaları
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Response):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def index(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/api/swarm/state")
