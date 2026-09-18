@@ -1,0 +1,25 @@
+# PyreSwarm - Autonomous Swarm Drone Wildfire Detection & Coordination
+# Core ML & Vision
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python>=4.8.0
+
+# Swarm Mathematics & Geometry
+numpy>=1.24.0
+scipy>=1.10.0
+shapely>=2.0.0
+
+# Hardware & Flight Control Protocols
+pymavlink>=2.4.30
+
+# Web Mission Control GCS & Realtime Streaming
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+websockets>=11.0.0
+pydantic>=2.0.0
+jinja2>=3.1.0
+
+# Testing & Quality Assurance
+pytest>=7.4.0
+requests>=2.31.0
