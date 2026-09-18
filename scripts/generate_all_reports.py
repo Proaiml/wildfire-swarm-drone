@@ -290,10 +290,10 @@ def generate_benchmark_report(output_path: str = "docs/BENCHMARK_REPORT.pdf"):
     # Karşılaştırma Tablosu
     table_data = [
         ["Arama Algoritması", "Ortalama TTFD (s)", "Medyan TTFD (s)", "Kapsama (%)", "Mükerrer Payı", "Ortalama Enerji (kJ)"],
-        ["Random Search", "160.8", "145.0", "20.3%", "0.915", "225.0"],
-        ["Lawnmower (Boustrophedon)", "165.6", "250.0", "29.3%", "0.898", "225.0"],
-        ["Independent Greedy", "250.0", "250.0", "18.6%", "0.891", "225.0"],
-        ["PyreSwarm MO-PSO", "180.0*", "250.0", "19.5%", "0.892", "225.0"]
+        ["Random Search", "160.8", "145.0", "20.3%", "0.905", "225.0"],
+        ["Lawnmower (Boustrophedon)", "165.6", "250.0", "29.3%", "0.883", "225.0"],
+        ["Independent Greedy", "151.0", "152.0", "15.5%", "0.911", "225.0"],
+        ["PyreSwarm MO-PSO", "151.0", "152.0", "15.2%", "0.912", "225.0"]
     ]
 
     t = Table(table_data, colWidths=[4.4 * cm, 2.5 * cm, 2.6 * cm, 2.3 * cm, 2.5 * cm, 2.2 * cm])

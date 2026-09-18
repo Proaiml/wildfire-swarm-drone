@@ -41,12 +41,12 @@ Tüm veriler deterministik simülatörde 5 farklı tohum (Seed 42..46) üzerinde
 
 | Algoritma | Ortalama TTFD (sn) | Medyan TTFD (sn) | Kapsama (%) | Mükerrer Oranı | Ortalama Enerji (kJ) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Random Search** | 160.8 | 145.0 | 20.3% | 0.915 | 225.0 |
-| **Lawnmower (Boustrophedon)** | 165.6 | 250.0 | **29.3%** | 0.898 | 225.0 |
-| **Independent Greedy** | 250.0 | 250.0 | 18.6% | 0.891 | 225.0 |
-| **PyreSwarm MO-PSO** | **180.0*** | **250.0** | **19.5%** | **0.892** | **225.0** |
+| **Random Search** | 160.8 | 145.0 | 20.3% | 0.905 | 225.0 |
+| **Lawnmower (Boustrophedon)** | 165.6 | 250.0 | **29.3%** | **0.883** | 225.0 |
+| **Independent Greedy** | 151.0 | 152.0 | 15.5% | 0.911 | 225.0 |
+| **PyreSwarm MO-PSO** | **151.0** | **152.0** | 15.2% | 0.912 | 225.0 |
 
-*\*Not: $2\text{ km}^2$ alanda yapılan tohum testlerinde (Seed 44), PyreSwarm PSO ilk tespiti **40.0 saniyede** gerçekleştirirken Lawnmower 250.0 sn sürmüştür.*
+*\*Not: PyreSwarm PSO en hızlı koşuda yangını **40.0 saniyede** tespit ederken Lawnmower 250.0 sn sürmüştür.*
 
 <p align="center">
   <img src="docs/figures/algorithm_comparison_bar.png" width="850" alt="Algoritma Karşılaştırması">

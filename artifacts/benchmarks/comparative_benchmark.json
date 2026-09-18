@@ -19,21 +19,21 @@
       "energy_mean_kj": 225.0
     },
     "GREEDY": {
-      "ttfd_mean": 250.0,
-      "ttfd_median": 250.0,
-      "ttfd_std": 0.0,
+      "ttfd_mean": 151.0,
+      "ttfd_median": 152.0,
+      "ttfd_std": 89.1,
       "ttfd_p90": 250.0,
-      "coverage_mean": 18.58,
-      "redundant_ratio_mean": 0.859,
+      "coverage_mean": 15.45,
+      "redundant_ratio_mean": 0.911,
       "energy_mean_kj": 225.0
     },
     "PYRESWARM_PSO": {
-      "ttfd_mean": 250.0,
-      "ttfd_median": 250.0,
-      "ttfd_std": 0.0,
+      "ttfd_mean": 151.0,
+      "ttfd_median": 152.0,
+      "ttfd_std": 89.1,
       "ttfd_p90": 250.0,
-      "coverage_mean": 18.58,
-      "redundant_ratio_mean": 0.859,
+      "coverage_mean": 15.15,
+      "redundant_ratio_mean": 0.912,
       "energy_mean_kj": 225.0
     }
   },
@@ -195,13 +195,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 152.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 17.44,
-      "redundant_ratio": 0.874,
-      "total_distance_km": 14.263,
+      "coverage_percent": 18.06,
+      "redundant_ratio": 0.89,
+      "total_distance_km": 10.77,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "GREEDY",
@@ -212,9 +212,9 @@
       "steps_executed": 250,
       "ttfd_seconds": 250.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 20.06,
-      "redundant_ratio": 0.853,
-      "total_distance_km": 13.537,
+      "coverage_percent": 22.62,
+      "redundant_ratio": 0.882,
+      "total_distance_km": 14.694,
       "energy_kj": 225.0,
       "incidents_confirmed": 0
     },
@@ -225,13 +225,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 63.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 18.94,
-      "redundant_ratio": 0.851,
-      "total_distance_km": 12.533,
+      "coverage_percent": 8.94,
+      "redundant_ratio": 0.938,
+      "total_distance_km": 5.016,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "GREEDY",
@@ -240,13 +240,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 40.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 19.94,
-      "redundant_ratio": 0.85,
-      "total_distance_km": 12.053,
+      "coverage_percent": 5.19,
+      "redundant_ratio": 0.964,
+      "total_distance_km": 3.849,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "GREEDY",
@@ -257,9 +257,9 @@
       "steps_executed": 250,
       "ttfd_seconds": 250.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 16.5,
-      "redundant_ratio": 0.866,
-      "total_distance_km": 14.212,
+      "coverage_percent": 22.44,
+      "redundant_ratio": 0.883,
+      "total_distance_km": 14.694,
       "energy_kj": 225.0,
       "incidents_confirmed": 0
     },
@@ -270,13 +270,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 152.0,
       "ttc_seconds": 250.0,
       "coverage_percent": 17.44,
-      "redundant_ratio": 0.874,
-      "total_distance_km": 14.263,
+      "redundant_ratio": 0.894,
+      "total_distance_km": 10.533,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "PYRESWARM_PSO",
@@ -287,9 +287,9 @@
       "steps_executed": 250,
       "ttfd_seconds": 250.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 20.06,
-      "redundant_ratio": 0.853,
-      "total_distance_km": 13.537,
+      "coverage_percent": 22.62,
+      "redundant_ratio": 0.882,
+      "total_distance_km": 14.694,
       "energy_kj": 225.0,
       "incidents_confirmed": 0
     },
@@ -300,13 +300,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 63.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 18.94,
-      "redundant_ratio": 0.851,
-      "total_distance_km": 12.533,
+      "coverage_percent": 8.5,
+      "redundant_ratio": 0.936,
+      "total_distance_km": 4.638,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "PYRESWARM_PSO",
@@ -315,13 +315,13 @@
       "area_km2": 4.0,
       "num_fires": 2,
       "steps_executed": 250,
-      "ttfd_seconds": 250.0,
+      "ttfd_seconds": 40.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 19.94,
-      "redundant_ratio": 0.85,
-      "total_distance_km": 12.053,
+      "coverage_percent": 4.75,
+      "redundant_ratio": 0.964,
+      "total_distance_km": 3.35,
       "energy_kj": 225.0,
-      "incidents_confirmed": 0
+      "incidents_confirmed": 1
     },
     {
       "algorithm": "PYRESWARM_PSO",
@@ -332,9 +332,9 @@
       "steps_executed": 250,
       "ttfd_seconds": 250.0,
       "ttc_seconds": 250.0,
-      "coverage_percent": 16.5,
-      "redundant_ratio": 0.866,
-      "total_distance_km": 14.212,
+      "coverage_percent": 22.44,
+      "redundant_ratio": 0.883,
+      "total_distance_km": 14.694,
       "energy_kj": 225.0,
       "incidents_confirmed": 0
     }

@@ -125,19 +125,43 @@ class SwarmOptimizer:
         vy_new = w * drone.vy + c1 * r1 * (dy_pbest * 0.1) + c2 * r2 * (dy_gbest * 0.1)
         vz_new = w * drone.vz + c1 * r1 * (dz_pbest * 0.05) + c2 * r2 * (dz_gbest * 0.05)
 
-        # Eğer hiç yangın sinyali yoksa arama seyrini ve hızını koru (11-13 m/s)
+        # Eğer henüz yangın sinyali yoksa: Sektörel Keşif ve Alan Dağılımı (Sector Dispersion)
         if self.global_best_score <= 0.05:
-            curr_speed = math.hypot(vx_new, vy_new)
-            if curr_speed < 1.0:
-                # Başlangıç yönü
-                rad = math.radians(drone.heading) if drone.heading > 0 else random.uniform(0, 2 * math.pi)
-                vx_new = 12.0 * math.cos(rad)
-                vy_new = 12.0 * math.sin(rad)
+            if self.safety.search_polygon is not None and not self.safety.search_polygon.is_empty:
+                min_lon, min_lat, max_lon, max_lat = self.safety.search_polygon.bounds
+                n_drones = max(1, len(all_drones))
+                try:
+                    d_idx = [d.drone_id for d in all_drones].index(drone.drone_id)
+                except ValueError:
+                    d_idx = 0
+
+                # Drone'a tahsis edilen sektör enlemi
+                sec_lat = min_lat + (d_idx + 0.5) * ((max_lat - min_lat) / float(n_drones))
+                # Doğu-Batı salınım fazı
+                phase = (self.current_iteration * 0.03 + d_idx * (math.pi / float(n_drones))) % (2.0 * math.pi)
+                sec_lon = min_lon + 0.5 * (max_lon - min_lon) * (1.0 + math.sin(phase))
+
+                dx_sec = (sec_lon - drone.lon) * m_lon
+                dy_sec = (sec_lat - drone.lat) * self.meters_per_degree
+                dist_sec = math.hypot(dx_sec, dy_sec)
+
+                if dist_sec > 2.0:
+                    vx_new = 12.0 * (dx_sec / dist_sec)
+                    vy_new = 12.0 * (dy_sec / dist_sec)
+                else:
+                    vx_new = 0.0
+                    vy_new = 0.0
             else:
-                # Yön momentumunu koru ve hızı 11-12 m/s seyir hızına normalize et
-                scale = 11.5 / curr_speed
-                vx_new = (vx_new * scale) + (random.random() - 0.5) * 0.6
-                vy_new = (vy_new * scale) + (random.random() - 0.5) * 0.6
+                # Poligon yoksa pusula yönünü koru
+                curr_speed = math.hypot(vx_new, vy_new)
+                if curr_speed < 1.0:
+                    rad = math.radians(drone.heading) if drone.heading > 0 else random.uniform(0, 2 * math.pi)
+                    vx_new = 12.0 * math.cos(rad)
+                    vy_new = 12.0 * math.sin(rad)
+                else:
+                    scale = 11.5 / curr_speed
+                    vx_new = (vx_new * scale)
+                    vy_new = (vy_new * scale)
 
         # Çarpışma Önleme (APF) İtki Kuvvetlerini Ekle
         fx_rep, fy_rep, fz_rep = self.collision.calculate_repulsive_force(drone, all_drones)

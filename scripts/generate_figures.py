@@ -31,10 +31,10 @@ def generate_algorithm_comparison():
     colors_list = ['#94a3b8', '#38bdf8', '#fbbf24', '#ea580c']
 
     # Veriler (5-Tohumlu Monte Carlo Simülasyon Ölçümleri)
-    ttfd_means = [160.8, 165.6, 250.0, 180.0]
-    ttfd_best = [21.0, 23.0, 250.0, 40.0]
-    coverage_means = [20.3, 29.3, 18.6, 19.5]
-    redundant_ratios = [91.5, 89.8, 89.1, 89.2]
+    ttfd_means = [160.8, 165.6, 151.0, 151.0]
+    ttfd_best = [21.0, 23.0, 40.0, 40.0]
+    coverage_means = [20.3, 29.3, 15.5, 15.2]
+    redundant_ratios = [90.5, 88.3, 91.1, 91.2]
 
     # Panel 1: Ortalama İlk Tespit Süresi (TTFD)
     bars1 = ax1.bar(algos, ttfd_means, color=colors_list, width=0.55, edgecolor='#334155', linewidth=0.5)
