@@ -1,25 +1,23 @@
 @echo off
-chcp 65001 >nul
-title PyreSwarm - Kapsamlı Test Paketi
+title PyreSwarm - Kapsamli Test Paketi
 color 0B
-
 cls
+
 echo ===============================================================================
-echo     🧪 PYRESWARM: 23 BİRİM VE ENTEGRASYON TESTİ KOŞTURULUYOR 🧪
+echo     PYRESWARM: 23 BIRIM VE ENTEGRASYON TESTI KOSUTURULUYOR
 echo ===============================================================================
 echo.
 
-set PYTHON_EXE=python
-if exist "C:\Users\İlhan\AppData\Local\Programs\Python\Python311\python.exe" (
-    set PYTHON_EXE="C:\Users\İlhan\AppData\Local\Programs\Python\Python311\python.exe"
+if exist "%USERPROFILE%\AppData\Local\Programs\Python\Python311\python.exe" (
+    "%USERPROFILE%\AppData\Local\Programs\Python\Python311\python.exe" -m pytest tests/ -v
 ) else if exist ".venv\Scripts\python.exe" (
-    set PYTHON_EXE=".venv\Scripts\python.exe"
+    ".venv\Scripts\python.exe" -m pytest tests/ -v
+) else (
+    python -m pytest tests/ -v
 )
 
-%PYTHON_EXE% -m pytest tests/ -v
-
 echo.
 echo ===============================================================================
-echo  Tüm testler tamamlandı. Kapatmak için bir tuşa basın...
+echo  Tum testler tamamlandi. Kapatmak icin bir tusa basin...
 echo ===============================================================================
 pause >nul

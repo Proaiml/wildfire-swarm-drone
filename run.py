@@ -1,26 +1,39 @@
-"""
-PyreSwarm - Ana Başlatıcı (Main Launcher)
-Web Görev Kontrol Merkezini ve Sürü Drone Koordinatörünü tek komutla başlatır.
-"""
-
-import os
 import sys
+import os
+import threading
+import webbrowser
+import time
 import uvicorn
+
+# Windows konsol Unicode uyumluluğu
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+def open_browser():
+    time.sleep(1.5)
+    webbrowser.open("http://localhost:8000")
 
 def main():
     print("""
     ========================================================================
-     🔥 PYRESWARM: OTONOM SÜRÜ DRONE YANGIN TESPİT & KOORDİNASYON SİSTEMİ 🔥
+     [***] PYRESWARM: OTONOM SURU DRONE YANGIN TESPIT VE KOORDINASYONU [***]
     ========================================================================
-     [+] Çekirdek: 3D-PSO (Particle Swarm Optimization) & Artificial Potential Fields
-     [+] Yapay Zeka: YOLOv8 (best.pt - Yangın & Duman Tespiti)
-     [+] Donanım Desteği: Pixhawk/PX4/ArduPilot MAVLink, DJI & Simülatör
-     [+] Özel Yetenek: Dinamik Gönüllü/Vatandaş Drone Katılımı & Bölge Kapatma
+     [+] Cekirdek: 3D-PSO (Particle Swarm Optimization) ve APF Carpisma Onleme
+     [+] Yapay Zeka: YOLOv8 (best.pt - Yangin ve Duman Tespiti)
+     [+] Donanim Destegi: Pixhawk, PX4, ArduPilot MAVLink ve Simulator
+     [+] Ozel Yetenek: Dinamik Gonullu/Vatandas Drone Katilimi ve Bolge Kapatma
     ========================================================================
-     [>>] Görev Kontrol İstasyonu (GCS) Web Arayüzü Başlatılıyor:
+     [>>] Gorev Kontrol Istasyonu (GCS) Web Arayuzu Baslatiliyor:
           URL: http://localhost:8000
     ========================================================================
     """)
+
+    # Tarayıcıyı arka planda otomatik aç
+    threading.Thread(target=open_browser, daemon=True).start()
 
     # Web sunucusunu başlat
     uvicorn.run(
