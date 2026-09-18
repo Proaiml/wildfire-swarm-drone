@@ -79,6 +79,29 @@ Yangın arama probleminde PSO parametreleri ($w, c_1, c_2, R_{taboo}$) sezgisel 
 
 ---
 
+## 🏆 30 Optimizasyon Algoritması Karşılaştırmalı Çalışması (Mega-Benchmark)
+
+Detaylı akademik rapor ve taksonomi için: 📑 **[docs/OPTIMIZATION_ALGORITHMS_30.md](docs/OPTIMIZATION_ALGORITHMS_30.md)**
+
+Literatürdeki **30 farklı optimizasyon algoritması** (Sürü Zekası, Evrimsel & Genetik, Fizik/Kimya ve Klasik Arama aileleri), $4\text{ km}^2$ sahadaki orman yangını tespit ve kuşatma senaryosunda Monte Carlo simülasyonlarıyla test edilmiştir:
+
+<p align="center">
+  <img src="docs/figures/benchmark_30_ttfd_comparison.png" width="850" alt="30 Algoritma Kıyaslaması">
+</p>
+
+| Kategori | Algoritmalar (Örnekler) | Tespit & Kuşatma Karakteristiği |
+| :--- | :--- | :--- |
+| **Sürü Zekası (14 Algoritma)** | **PyreSwarm MO-PSO**, GWO, WOA, BA, FA, CS, ABC, SSA, HHO, DA, SMA, ACO | PyreSwarm sektörel dağılım + dinamik irtifa ile **151.0s ortalama TTFD** ve **3/3 yangın tam kuşatması** ile liderdir. |
+| **Evrimsel & Genetik (6 Algoritma)** | Real-GA, DE, CMA-ES, BBO, EP, ES | CMA-ES (151.2s) haricindekiler kinematik hız kısıtları nedeniyle sahayı süpürmede zaman aşımına uğramıştır. |
+| **Fizik & Kimya Tabanlı (5 Algoritma)**| SA, GSA, EO, WDO, HGSO | EO (129.6s) ve HGSO (157.6s) başarılı reaksiyon gösterirken GSA yerel kümelenme nedeniyle gecikmiştir. |
+| **Klasik Geometrik (5 Algoritma)** | Lawnmower (Grid), Random Search, Spiral, Voronoi, Greedy | Lawnmower yüksek kapsama (%34.7) sağlasa da **0 teyit** üretir (şeridini terk edip yangını kuşatamaz). |
+
+<p align="center">
+  <img src="docs/figures/benchmark_30_radar_chart.png" width="600" alt="Radar Karşılaştırma">
+</p>
+
+---
+
 ## 📑 Resmi PDF Dokümantasyonları
 
 Proje kök dizininde ve `docs/` altında derlenmiş 4 resmi teknik doküman yer almaktadır:

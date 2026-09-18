@@ -334,6 +334,69 @@ def generate_benchmark_report(output_path: str = "docs/BENCHMARK_REPORT.pdf"):
         story.append(Image(cum_path, width=16.5 * cm, height=7.5 * cm))
         story.append(Paragraph("<b>Şekil 4:</b> Koopman Arama Teorisi ile Zaman İçinde Kümülatif Tespit Olasılığı Eğrisi P(t)", st['caption']))
 
+    story.append(PageBreak())
+    story.append(Paragraph("3. 30 Optimizasyon ve Arama Algoritması Mega-Benchmark Çalışması", st['h1']))
+    story.append(Paragraph(
+        "Orman yangını arama ve çevreleme operasyonlarında literatürdeki <b>30 farklı optimizasyon algoritması</b> "
+        "(Sürü Zekası, Evrimsel & Genetik, Fizik & Kimya Tabanlı ve Klasik Geometrik Arama) 5 tohum (Seed 42..46) üzerinden "
+        "4 km² sahadaki İHA kinematik kısıtları altında birebir test edilmiştir (Detaylar: <code>docs/OPTIMIZATION_ALGORITHMS_30.md</code>):",
+        st['body']
+    ))
+
+    # 30 Algoritma Özet Tablosu (Önde Gelen Temsilciler)
+    mega_table_data = [
+        ["Sıra", "Algoritma Adı", "Kategori", "Ort. TTFD (s)", "Kapsama (%)", "Mükerrer", "Yangın Teyidi"],
+        ["1", "Random Search", "Klasik Geometrik", "109.6", "20.6%", "0.939", "2"],
+        ["2", "Lawnmower (Grid)", "Klasik Geometrik", "119.6", "34.7%", "0.909", "0 (Kuşatamaz)"],
+        ["3", "Centroidal Voronoi", "Klasik Geometrik", "119.8", "13.2%", "0.961", "0 (Statik)"],
+        ["5", "Dragonfly (DA)", "Sürü Zekası", "123.0", "3.7%", "0.989", "3"],
+        ["7", "Bat Algorithm (BA)", "Sürü Zekası", "125.8", "4.0%", "0.988", "3"],
+        ["8", "Equilibrium Opt (EO)", "Fizik & Kimya", "129.6", "4.3%", "0.987", "3"],
+        ["9", "PyreSwarm MO-PSO", "Sürü Zekası", "151.0", "15.2%", "0.912", "3 (Tam Kuşatma)"],
+        ["10", "CMA-ES", "Evrimsel & Genetik", "151.2", "5.5%", "0.984", "3"],
+        ["12", "Grey Wolf (GWO)", "Sürü Zekası", "168.2", "6.9%", "0.979", "0"],
+        ["13", "Artificial Bee (ABC)", "Sürü Zekası", "202.8", "5.1%", "0.985", "2"],
+        ["21", "Standard PSO", "Sürü Zekası", "244.4", "3.8%", "0.989", "1"],
+        ["23-30", "WOA, FA, GSO, DE, SA vb.", "Muhtelif", "250.0", "<3.5%", ">0.98", "0 (Zaman Aşımı)"]
+    ]
+
+    mega_t = Table(mega_table_data, colWidths=[1.2 * cm, 4.3 * cm, 3.2 * cm, 2.3 * cm, 2.1 * cm, 1.8 * cm, 2.6 * cm])
+    mega_t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), FONT_BOLD),
+        ('FONTNAME', (0, 1), (-1, -1), FONT_REGULAR),
+        ('FONTSIZE', (0, 0), (-1, 0), 8.0),
+        ('FONTSIZE', (0, 1), (-1, -1), 8.0),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+        ('TEXTCOLOR', (1, 7), (1, 7), colors.HexColor('#ea580c')),
+        ('FONTNAME', (1, 7), (1, 7), FONT_BOLD),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')])
+    ]))
+    story.append(mega_t)
+    story.append(Spacer(1, 10))
+
+    # Grafik 3: 30 Algoritma Karşılaştırması
+    mega_bar_path = "docs/figures/benchmark_30_ttfd_comparison.png"
+    if os.path.exists(mega_bar_path):
+        story.append(Image(mega_bar_path, width=16.5 * cm, height=13.5 * cm))
+        story.append(Paragraph("<b>Şekil 5:</b> 30 Optimizasyon Algoritmasının Orman Yangını Tespit Süresi (TTFD) Başarı Sıralaması", st['caption']))
+
+    story.append(PageBreak())
+    story.append(Paragraph("4. Algoritma Aileleri Çok Kriterli Radar ve Yakınsama Analizi", st['h1']))
+
+    radar_path = "docs/figures/benchmark_30_radar_chart.png"
+    if os.path.exists(radar_path):
+        story.append(Image(radar_path, width=13.0 * cm, height=11.5 * cm))
+        story.append(Paragraph("<b>Şekil 6:</b> 4 Temel Algoritma Ailesi Arasında 5 Boyutlu Çok Kriterli Performans Radarı", st['caption']))
+
+    conv_path = "docs/figures/benchmark_30_convergence.png"
+    if os.path.exists(conv_path):
+        story.append(Spacer(1, 6))
+        story.append(Image(conv_path, width=16.5 * cm, height=8.0 * cm))
+        story.append(Paragraph("<b>Şekil 7:</b> Zaman İçinde Temsilci Algoritmaların Kümülatif Yangın Tespit Güvenilirlik Eğrileri", st['caption']))
+
     doc.build(story, canvasmaker=NumberedCanvas)
     print(f"[PDF] BENCHMARK_REPORT oluşturuldu: {output_path}")
 

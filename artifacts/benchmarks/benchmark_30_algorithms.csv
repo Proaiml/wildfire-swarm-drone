@@ -1,0 +1,31 @@
+rank,key,name,family,year,authors,ttfd_mean,ttfd_median,ttfd_min,ttfd_std,coverage_mean,redundant_ratio_mean,distance_mean_km,energy_mean_kj,incidents_confirmed_total
+1,RANDOM,Random Search (Brownian),Klasik & Geometrik Arama,1905,Pearson,109.6,109.0,20.0,83.1,20.6,0.939,15.0,225.0,2
+2,LAWNMOWER,Lawnmower (Boustrophedon),Klasik & Geometrik Arama,2000,Choset,119.6,53.0,22.0,107.1,34.69,0.909,15.0,225.0,0
+3,VORONOI,Centroidal Voronoi Partitioning,Klasik & Geometrik Arama,2004,Cortés et al.,119.8,54.0,22.0,106.9,13.24,0.961,8.13,225.0,0
+4,SPIRAL,Archimedean Spiral Spreading,Klasik & Geometrik Arama,2004,Vincent & Rubin,122.0,56.0,19.0,105.2,4.01,0.988,15.0,225.0,3
+5,DA,Dragonfly Algorithm (DA),Sürü Zekası,2016,Mirjalili,123.0,58.0,21.0,104.4,3.72,0.989,14.87,225.0,3
+6,ACO,Ant Colony Opt (ACOR),Sürü Zekası,2008,Socha & Dorigo,123.8,62.0,20.0,103.9,4.19,0.988,14.98,225.0,3
+7,BA,Bat Algorithm (BA),Sürü Zekası,2010,Yang,125.8,71.0,22.0,102.7,3.95,0.988,14.65,225.0,3
+8,EO,Equilibrium Optimizer (EO),Fizik & Kimya Tabanlı,2020,Faramarzi et al.,129.6,71.0,30.0,99.2,4.33,0.987,14.91,225.0,3
+9,PYRESWARM_PSO,PyreSwarm MO-PSO,Sürü Zekası,2026,PyreSwarm Team,151.0,152.0,40.0,89.1,15.15,0.912,9.58,225.0,3
+10,CMA_ES,CMA-ES,Evrimsel & Genetik,2001,Hansen & Ostermeier,151.2,152.0,33.0,89.4,5.49,0.984,14.99,225.0,3
+11,HGSO,Henry Gas Solubility (HGSO),Fizik & Kimya Tabanlı,2019,Hashim et al.,157.6,193.0,31.0,92.9,5.18,0.985,14.77,225.0,2
+12,GWO,Grey Wolf Optimizer (GWO),Sürü Zekası,2014,Mirjalili et al.,168.2,250.0,40.0,100.2,6.9,0.979,15.0,225.0,0
+13,ABC,Artificial Bee Colony (ABC),Sürü Zekası,2005,Karaboga,202.8,250.0,106.0,60.1,5.09,0.985,11.41,225.0,2
+14,HHO,Harris Hawks (HHO),Sürü Zekası,2019,Heidari et al.,205.6,250.0,28.0,88.8,4.64,0.985,6.24,225.0,1
+15,WDO,Wind Driven Opt (WDO),Fizik & Kimya Tabanlı,2010,Bayraktar et al.,207.6,250.0,38.0,84.8,5.23,0.984,14.64,225.0,1
+16,SSA,Salp Swarm Algorithm (SSA),Sürü Zekası,2017,Mirjalili et al.,208.4,250.0,42.0,83.2,4.43,0.987,8.03,225.0,1
+17,CS,Cuckoo Search (CS),Sürü Zekası,2009,Yang & Deb,219.2,250.0,131.0,46.1,5.06,0.985,14.88,225.0,1
+18,ES,Evolution Strategy (1+1)-ES,Evrimsel & Genetik,1973,Rechenberg,220.2,250.0,161.0,37.6,3.66,0.989,14.98,225.0,2
+19,GA,Genetic Algorithm (Real-GA),Evrimsel & Genetik,1975,Holland / Goldberg,223.8,250.0,174.0,32.8,4.56,0.987,14.93,225.0,2
+20,EP,Evolutionary Programming (EP),Evrimsel & Genetik,1966,Fogel,233.2,250.0,166.0,33.6,3.95,0.988,14.96,225.0,1
+21,STANDARD_PSO,Standard PSO,Sürü Zekası,1995,Kennedy & Eberhart,244.4,250.0,222.0,11.2,3.83,0.989,14.83,225.0,1
+22,GREEDY,Independent Hill Climbing,Klasik & Geometrik Arama,1970,Classic AI,244.4,250.0,222.0,11.2,3.66,0.989,14.83,225.0,1
+23,WOA,Whale Optimization (WOA),Sürü Zekası,2016,Mirjalili & Lewis,250.0,250.0,250.0,0.0,1.77,0.995,14.99,225.0,0
+24,FA,Firefly Algorithm (FA),Sürü Zekası,2008,Yang,250.0,250.0,250.0,0.0,1.12,0.997,14.79,225.0,0
+25,GSO,Glowworm Swarm (GSO),Sürü Zekası,2005,Krishnanand & Ghose,250.0,250.0,250.0,0.0,0.65,0.999,15.0,225.0,0
+26,SMA,Slime Mould Algorithm (SMA),Sürü Zekası,2020,Li et al.,250.0,250.0,250.0,0.0,3.66,0.984,6.28,225.0,0
+27,DE,Differential Evolution (DE),Evrimsel & Genetik,1997,Storn & Price,250.0,250.0,250.0,0.0,0.6,0.999,9.0,225.0,0
+28,BBO,Biogeography-Based (BBO),Evrimsel & Genetik,2008,Simon,250.0,250.0,250.0,0.0,1.89,0.994,14.79,225.0,0
+29,SA,Simulated Annealing (SA),Fizik & Kimya Tabanlı,1983,Kirkpatrick et al.,250.0,250.0,250.0,0.0,2.58,0.992,10.41,225.0,0
+30,GSA,Gravitational Search (GSA),Fizik & Kimya Tabanlı,2009,Rashedi et al.,250.0,250.0,250.0,0.0,0.5,0.998,2.02,225.0,0
