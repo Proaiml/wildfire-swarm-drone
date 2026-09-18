@@ -397,6 +397,25 @@ def generate_benchmark_report(output_path: str = "docs/BENCHMARK_REPORT.pdf"):
         story.append(Image(conv_path, width=16.5 * cm, height=8.0 * cm))
         story.append(Paragraph("<b>Şekil 7:</b> Zaman İçinde Temsilci Algoritmaların Kümülatif Yangın Tespit Güvenilirlik Eğrileri", st['caption']))
 
+    story.append(PageBreak())
+    story.append(Paragraph("5. Metrikleri Doğru Okuma Rehberi: Neyin İyi Olduğunu Nasıl Anlarız?", st['h1']))
+    story.append(Paragraph(
+        "Bir optimizasyon çalışmasında tek bir sayıya bakarak <i>'en iyisi buymuş'</i> demek yanıltıcıdır. "
+        "Operasyonel başarı için aşağıdaki dinamikler dikkate alınmalıdır:<br/><br/>"
+        "• <b>TTFD (İlk Tespit Süresi):</b> Random Search'ün 109 sn çıkması gibi durumlar stokastik bir şanstır. "
+        "Arkada hedef hafızası veya sürü koordinasyonu yoksa ilk tespit tek başına bir zafer değildir.<br/>"
+        "• <b>Yangın Teyidi ve Kuşatması (incidents_confirmed):</b> Lawnmower 119 sn'de yangının yanından geçer ancak "
+        "teyit sayısı <b>0 (Sıfır)</b>'dır; çünkü şeridini terk edemez ve irtifa düşüremez. PyreSwarm'ın <b>3/3 tam kuşatması</b> "
+        "operasyonel görevin bittiğini kanıtlar.<br/>"
+        "• <b>Kapsama Oranı (Coverage %):</b> Lawnmower robotik biçimde %34.7 tarar ama yangını kaçırır. Dragonfly ve Bat algoritmaları "
+        "ise sadece %3.7 tarar çünkü tek bir duman sinyalinde tüm filoyla tek noktaya yığılır (<b>Swarm Collapse</b>) ve sahanın kalan "
+        "%96'sını terk eder. <b>PyreSwarm'ın %15.2'lik kapsaması dengeli keşiftir:</b> İlk yangına 2 drone bırakırken, 150m tabu alanı "
+        "ile kalan 3 drone'u ikinci yangını aramaya yönlendirir.<br/>"
+        "• <b>Mesafe ve Enerji Verimliliği:</b> Diğer algoritmalar sürekli son gaz (15 m/s) uçarak 15.0 km batarya tüketirken, "
+        "PyreSwarm akıllı koridor yönlendirmesiyle yalnızca <b>9.58 km</b> uçarak %36 batarya tasarrufu sağlamıştır.",
+        st['body']
+    ))
+
     doc.build(story, canvasmaker=NumberedCanvas)
     print(f"[PDF] BENCHMARK_REPORT oluşturuldu: {output_path}")
 

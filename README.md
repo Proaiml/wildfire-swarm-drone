@@ -100,6 +100,13 @@ Literatürdeki **30 farklı optimizasyon algoritması** (Sürü Zekası, Evrimse
   <img src="docs/figures/benchmark_30_radar_chart.png" width="600" alt="Radar Karşılaştırma">
 </p>
 
+### 🧭 Metrikleri Doğru Okuma Rehberi (Rakamların Arkasındaki Gerçek)
+Bir tabloya veya grafiğe bakan bir uzmanın sadece *"en düşük süreyi"* görüp aldanmaması için:
+1. **TTFD (İlk Tespit Süresi):** Random Search'ün 109s çıkması şanstır; pusulasız rastgele fırlayan bir arama operasyonel değer taşımaz.
+2. **Yangın Teyidi (`incidents_confirmed`):** Asıl operasyonel başarı budur! Lawnmower 119s'de yangının yanından geçse bile **0 teyit** üretir (şeridini bırakamaz). PyreSwarm ise **3 / 3 Tam Kuşatma** yapmıştır.
+3. **Kapsama Oranı (Coverage %):** Lawnmower robot gibi %34 tarar ama yangını kaçırır. Dragonfly/Bat sadece %3.7 tarar çünkü tek noktaya çöker (**Swarm Collapse**). **PyreSwarm'ın %15.2'lik kapsaması "Dengeli Keşif"tir:** Yangını sararken $150\text{ m}$ tabu alanı ile filonun geri kalanı ikinci yangını bulur.
+4. **Mesafe ve Enerji:** Diğerleri 15 km son gaz uçup pilleri bitirirken, PyreSwarm **9.58 km** uçarak %36 batarya tasarrufu sağlamıştır.
+
 ---
 
 ## 📑 Resmi PDF Dokümantasyonları
@@ -108,7 +115,7 @@ Proje kök dizininde ve `docs/` altında derlenmiş 4 resmi teknik doküman yer 
 1. 📄 **[USER_MANUAL.pdf](USER_MANUAL.pdf)**: Operasyonel kullanım, web kontrol merkezi, arama alanı çizimi, yangın teyit sihirbazı.
 2. 📐 **[DEVELOPER_GUIDE.pdf](DEVELOPER_GUIDE.pdf)**: Paket mimarisi, matematiksel denklemler, APF kuvvetleri ve adaptör geliştirme kılavuzu.
 3. 📊 **[BENCHMARK_REPORT.pdf](BENCHMARK_REPORT.pdf)**: Monte Carlo simülasyon çıktıları, algoritmik karşılaştırmalar ve istatistiksel tablolar.
-4. 🧪 **[TEST_REPORT.pdf](TEST_REPORT.pdf)**: Gereksinim İzlenebilirlik Matrisi (RTM) ve 54 testin doğrulama sonuçları (%100 Başarı).
+4. 🧪 **[TEST_REPORT.pdf](TEST_REPORT.pdf)**: Gereksinim İzlenebilirlik Matrisi (RTM) ve 57 testin doğrulama sonuçları (%100 Başarı).
 
 ---
 

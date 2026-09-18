@@ -140,6 +140,30 @@ Literatürdeki 30 farklı optimizasyon ve arama algoritması (Sürü Zekası, Ev
 > 
 > *Detaylı 30 algoritma analizi ve matematiksel formüller için: [docs/OPTIMIZATION_ALGORITHMS_30.md](OPTIMIZATION_ALGORITHMS_30.md)*
 
+### D. Metrikleri Doğru Okuma Rehberi (Rakamların Arkasındaki Gerçek)
+
+Bir tabloya veya grafiğe bakan bir operatörün yalnızca *"en düşük süreyi"* veya *"en yüksek yüzdeyi"* seçip yanılgıya düşmemesi için metriklerin operasyonel anlamları aşağıda açıklanmıştır:
+
+#### 1. TTFD (İlk Tespit Süresi - Saniye)
+* **Ne Anlatır?:** Herhangi bir drone kamerasının görüş açısına ilk alev/duman pikselinin girdiği süredir.
+* **Yanılgı Tuzağı:** "TTFD'si 109 saniye olan Random Search en iyisidir" demek ölümcül bir operasyonel hatadır! Çünkü Random Search tamamen şans eseri rastgele bir açıyla yangının üzerinden geçmiştir; arkasında hiçbir hedef hafızası, haberleşme veya formasyon kabiliyeti yoktur.
+* **Doğru Yorum:** TTFD tek başına bir amaç değil, sadece ilk temas hızıdır. İlk temastan sonra sürünün oraya odaklanıp odaklanamadığına (`incidents_confirmed`) bakılmalıdır.
+
+#### 2. Yangın Teyidi ve Kuşatması (`incidents_confirmed` - Adet)
+* **Ne Anlatır?:** Yangın bulunduktan sonra bir İHA'nın arama irtifasından (85m) inceleme irtifasına (35m) inip inemediğini, diğer drone'ları koordinata çağırıp perimetreyi kuşatarak sahte alarm olmadığını teyit edip etmediğini gösterir.
+* **Yanılgı Tuzağı:** Lawnmower (Çim Biçme) 119 saniyede yangının yanından geçer ancak teyit sayısı **0 (Sıfır)**'dır. Şeridini terk edemeyen bir drone yangını söndüremez!
+* **Doğru Yorum:** İtfaiye ve kriz masası için asıl başarı metriği teyit edilen yangın odaklarıdır. PyreSwarm'ın **3 / 3 Tam Kuşatma** başarısı operasyonun tamamlandığını kanıtlar.
+
+#### 3. Alan Kapsama Yüzdesi (Coverage - %)
+* **Ne Anlatır?:** Arama poligonunun ne kadarının optik kameralarla tarandığını gösterir.
+* **Yanılgı Tuzağı:** Kapsama alanının çok yüksek olması her zaman iyiye işaret değildir (Lawnmower robot gibi %34 tarar ama yangını kaçırır). Kapsama alanının çok düşük olması (%3.7 - Dragonfly, Bat) ise sürünün ilk duman sinyalinde körlemesine tek noktaya yığıldığını (**Swarm Collapse**) ve ikinci yangın varsa tamamen göz ardı ettiğini gösterir!
+* **Doğru Yorum:** **%15.2'lik PyreSwarm Kapsaması "Dengeli Keşif"tir:** İlk yangını 2 drone ile kuşatırken, $150\text{ m}$ tabu maskelemesi sayesinde kalan 3 drone sahayı taramaya devam ederek ikinci yangını bulur.
+
+#### 4. Kat Edilen Mesafe ve Harcanan Enerji (Distance & Energy)
+* **Ne Anlatır?:** 5 drone'un havada kaldığı süre boyunca kat ettiği toplam kilometre ve bataryadan çektiği enerjidir.
+* **Yanılgı Tuzağı:** "15 km uçan drone daha çok çalışmıştır" düşüncesi yanlıştır. Havada gereksiz yere son gaz fırlayan drone'ların pili 20 dakikada biter ve üsse acil iniş yapmak zorunda kalırlar.
+* **Doğru Yorum:** PyreSwarm'ın **9.58 km** uçması bir zayıflık değil, **%36 batarya tasarrufudur.** Akıllı koridor yönlendirmesi sayesinde gereksiz zikzaklar çizilmemiş, yangınlar bulunmuş ve filonun havada kalma süresi maksimize edilmiştir.
+
 ---
 
 ## 7. PDF Formatında Dokümantasyonlar

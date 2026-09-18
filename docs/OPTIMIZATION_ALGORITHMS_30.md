@@ -182,7 +182,35 @@ Lawnmower veya Random Search gibi algoritmalar bazen ilk tespiti (TTFD) erken ya
 
 ---
 
-## 7. Sonuç
+## 7. Metriklerin Anatomisi ve Değerlendirme Rehberi: "Neyin İyi Olduğunu Nasıl Anlarız?"
+
+Bir optimizasyon çalışmasında tek bir sayıya bakarak *"bu algoritma en iyisi"* demek hem mühendislik hem de yangın operasyonları açısından yanıltıcıdır. Aşağıdaki rehber, her bir metriğin arkasındaki fiziksel ve taktiksel gerçeği ortaya koymaktadır:
+
+### 1. TTFD (İlk Tespit Süresi - Saniye)
+* **Gerçek Anlamı:** İHA kamerasının görüş alanına yangın pikselinin girdiği ilk saniyedir.
+* **Tuzak & Yanılgı:** Random Search 109 saniyede yangını buldu diye "en iyi arama algoritması" ilan edilemez. Çünkü Random Search pusulasız, rotasız, rastgele açıyla sahaya fırlayan stokastik bir kumardır. Bazı tohumlarda yangının üstünden tesadüfen geçerken, bazı tohumlarda alanın ters ucuna fırlamıştır.
+* **Operasyonel Kriter:** İlk tespit süresi tek başına yeterli değildir; asıl mesele ilk temastan sonra sürünün o yangını doğrulayıp kontrol altına alabilmesidir.
+
+### 2. Yangın Teyidi ve Kuşatma (`incidents_confirmed` - Adet)
+* **Gerçek Anlamı:** İHA'nın yangını gördükten sonra arama irtifasını (85m) terk edip inceleme irtifasına (35m) inmesi, diğer İHA'ları yardıma çağırması ve koordinatın teyit edilmesidir.
+* **Tuzak & Yanılgı:** Lawnmower (Grid Sweep) TTFD'de 119 saniyeyle hızlı görünür ama teyit sayısı **0 (Sıfır)**'dır! Robotik şeridini terk edemeyen bir İHA, yangını yetkililere teyit edemez ve perimetreyi çıkaramaz.
+* **Operasyonel Kriter:** Sahanın gerçek nihai amacı teyit üretmektir. PyreSwarm'ın **3 / 3 Tam Kuşatma** başarısı, algoritmanın yangın görevini eksiksiz bitirdiğini kanıtlar.
+
+### 3. Alan Kapsama Yüzdesi (Coverage - %)
+* **Gerçek Anlamı:** $4\text{ km}^2$'lik arama sahasının kameralar tarafından taranmış yüzölçümü oranıdır.
+* **Tuzak & Yanılgı:** 
+  * "Kapsama ne kadar yüksekse o kadar iyidir": Yanlış! Lawnmower %34.7 kapsama yapar ama yangını doğrulayamaz.
+  * Kapsamanın aşırı düşük olması (%3.7 - Dragonfly, Bat): Çok tehlikelidir! Bu algoritmalar ilk duman sinyalinde tüm filoyla tek noktaya çöker (**Swarm Collapse**) ve sahanın kalan %96'sını tamamen terk eder. İkinci veya üçüncü bir yangın varsa göz göre göre yanar.
+* **Operasyonel Kriter:** **PyreSwarm'ın %15.2 Kapsaması "Dengeli Keşif"tir:** İlk yangına 2 İHA atanırken, $150\text{ m}$ tabu maskelemesi ile kalan 3 İHA arama devriyesini sürdürür ve ikinci yangını da bulur.
+
+### 4. Kat Edilen Mesafe ve Harcanan Enerji (Distance & Energy)
+* **Gerçek Anlamı:** Filonun toplam kat ettiği kilometre ve bataryadan çektiği kilojoule cinsinden enerjidir.
+* **Tuzak & Yanılgı:** "15 km uçan İHA daha çok çalışmıştır": Yanlış! Havada gereksiz yere son sürat (15 m/s) daireler çizen İHA'lar bataryalarını 20 dakikada tüketip acil inişe geçerler.
+* **Operasyonel Kriter:** PyreSwarm'ın **9.58 km** uçması rota ekonomisi ve **%36 batarya tasarrufudur.** Akıllı koridor yönlendirmesi sayesinde gereksiz uçuş yapılmamış, yangınlar bulunmuş ve filonun havada kalış süresi maksimize edilmiştir.
+
+---
+
+## 8. Sonuç
 
 30 algoritma üzerinde gerçekleştirilen 150 Monte Carlo simülasyonu göstermektedir ki; tek başına ne saf deterministik geometrik tarama ne de saf soyut metaheuristik optimizasyon fiziksel bir İHA sürüsü için yeterlidir.
 
