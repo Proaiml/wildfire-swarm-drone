@@ -31,15 +31,53 @@ function initMap() {
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Koyu Havacılık Harita Katmanı (CartoDB DarkMatter)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(map);
+    // Google Maps Katmanları
+    const googleHybrid = L.tileLayer("https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+        subdomains: ["0", "1", "2", "3"],
+        maxZoom: 21,
+        attribution: '&copy; Google Maps'
+    });
+
+    const googleSatellite = L.tileLayer("https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", {
+        subdomains: ["0", "1", "2", "3"],
+        maxZoom: 21,
+        attribution: '&copy; Google Maps'
+    });
+
+    const googleStreets = L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+        subdomains: ["0", "1", "2", "3"],
+        maxZoom: 21,
+        attribution: '&copy; Google Maps'
+    });
+
+    const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    });
+
+    // Varsayılan olarak Google Maps Hibrit (Uydu + Yol İsimleri) aktif et
+    googleHybrid.addTo(map);
+
+    // Katman Değiştirici Kontrolü
+    const baseMaps = {
+        "Google Uydu (Hibrit)": googleHybrid,
+        "Google Saf Uydu": googleSatellite,
+        "Google Harita": googleStreets,
+        "OpenStreetMap": osm
+    };
+    L.control.layers(baseMaps, null, { position: "topright" }).addTo(map);
 
     // Harita Tıklama Dinleyicisi (Poligon Çizimi için)
     map.on("click", handleMapClick);
+
+    // Sayfa grid düzeni oturduğunda harita boyutunu tazele
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 200);
+
+    window.addEventListener("resize", () => {
+        map.invalidateSize();
+    });
 }
 
 /* 2. Özel Drone İkonu Üretimi */
