@@ -624,3 +624,153 @@ body.gcs-body {
     justify-content: flex-end;
     gap: 10px;
 }
+
+/* Sağ Tık Bağlam Menüsü (Context Menu) */
+.context-menu {
+    position: absolute;
+    z-index: 1500;
+    background: #141c28;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+    padding: 6px 0;
+    min-width: 220px;
+    font-size: 12px;
+}
+.context-item {
+    padding: 8px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-main);
+    transition: background 0.15s;
+}
+.context-item:hover {
+    background: rgba(255, 85, 0, 0.25);
+    color: #fff;
+}
+.context-divider {
+    height: 1px;
+    background: var(--border-glass);
+    margin: 4px 0;
+}
+
+/* Ana Operasyon Üssü Marker ve Radar Nabzı */
+.base-marker-container {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.base-shelter-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #ffb300, #ff6f00);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    color: #000;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(255, 179, 0, 0.8);
+    z-index: 2;
+}
+.base-radar-pulse {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #ffb300;
+    animation: base-radar-anim 2s infinite ease-out;
+    z-index: 1;
+    pointer-events: none;
+}
+@keyframes base-radar-anim {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Filo Tablosu Aksiyon Butonları */
+.btn-table-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    color: var(--text-dim);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-table-action:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+.btn-table-action.action-rtl:hover {
+    color: #ff9100;
+    border-color: #ff9100;
+}
+.btn-table-action.action-land:hover {
+    color: #00e5ff;
+    border-color: #00e5ff;
+}
+.btn-table-action.action-del:hover {
+    color: #ff3344;
+    border-color: #ff3344;
+}
+
+/* Batarya Kritik Yanıp Sönme */
+.battery-critical {
+    color: #ff3344 !important;
+    font-weight: 700;
+    animation: battery-blink 1s infinite alternate;
+}
+@keyframes battery-blink {
+    0% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+/* Toast Bildirim Kutuları */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+.toast-item {
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 400px;
+    background: #101824;
+    border: 1px solid var(--border-glass);
+    border-left: 4px solid var(--color-hud);
+    padding: 10px 14px;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: toast-slide-in 0.3s ease-out;
+}
+.toast-item.toast-success {
+    border-left-color: #00e676;
+}
+.toast-item.toast-danger {
+    border-left-color: #ff3344;
+}
+.toast-item.toast-warning {
+    border-left-color: #ffb300;
+}
+@keyframes toast-slide-in {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

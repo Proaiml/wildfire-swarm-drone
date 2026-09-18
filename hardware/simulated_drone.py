@@ -189,11 +189,19 @@ class SimulatedDrone(BaseDrone):
         if self.telemetry.speed > 0.3:
             self.telemetry.heading = (math.degrees(math.atan2(self.telemetry.vx, self.telemetry.vy)) + 360.0) % 360.0
 
-        # Batarya tükenimi
+        # Batarya tükenimi ve saha emniyet denetimi (Fail-Safe)
         if self.telemetry.is_in_air:
             self.telemetry.battery_percentage = max(
                 0.0, self.telemetry.battery_percentage - (self.battery_drain_rate * actual_dt)
             )
+            if self.telemetry.battery_percentage <= 20.0:
+                self.telemetry.is_low_battery = True
+            else:
+                self.telemetry.is_low_battery = False
+
+            # Sahada batarya %15 altına düşerse acil otonom RTL tetikle
+            if self.telemetry.battery_percentage <= 15.0 and self.mode == DroneMode.MISSION_PSO:
+                self.return_to_launch()
 
         self.telemetry.last_heartbeat = now
 

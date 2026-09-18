@@ -97,6 +97,27 @@ class PSOEngine:
         # Çoklu Yangın Odakları (Multi-Modal / Clusters)
         self.discovered_fire_clusters: List[Dict[str, Any]] = []
 
+        # Saha Rüzgar Modeli (Duman Sürüklenmesi)
+        self.wind_speed_ms: float = 3.0       # m/s
+        self.wind_direction_deg: float = 45.0 # 0=Kuzey, 90=Doğu, 45=Poyraz
+
+        # Operasyon Arama Sınırları (AOI - Area of Interest)
+        self.aoi_bounds: Optional[Dict[str, float]] = None
+
+    def set_wind(self, speed_ms: float, direction_deg: float):
+        """Saha rüzgar parametrelerini günceller."""
+        self.wind_speed_ms = max(0.0, min(30.0, speed_ms))
+        self.wind_direction_deg = direction_deg % 360.0
+
+    def set_aoi(self, min_lat: float, max_lat: float, min_lon: float, max_lon: float):
+        """Operasyon arama sınırını (AOI) belirler."""
+        self.aoi_bounds = {
+            "min_lat": min(min_lat, max_lat),
+            "max_lat": max(min_lat, max_lat),
+            "min_lon": min(min_lon, max_lon),
+            "max_lon": max(min_lon, max_lon)
+        }
+
     def register_or_update_particle(
         self,
         drone_id: str,
@@ -266,13 +287,35 @@ class PSOEngine:
             geo_vx = geo_dlon * m_per_deg_lon * self.config.geofence_repulsion_gain
             geo_vy = geo_dlat * self.METERS_PER_DEGREE * self.config.geofence_repulsion_gain
 
-            # 5. Keşif Rüzgarı (Stochastic Exploration)
+            # 5. Operasyon Sınırları (AOI Boundary Containment)
+            aoi_vx = 0.0
+            aoi_vy = 0.0
+            if self.aoi_bounds:
+                margin_lat = 40.0 / self.METERS_PER_DEGREE
+                margin_lon = 40.0 / m_per_deg_lon
+
+                if p.lat > self.aoi_bounds["max_lat"] - margin_lat:
+                    aoi_vy -= self.config.max_speed * 1.5
+                elif p.lat < self.aoi_bounds["min_lat"] + margin_lat:
+                    aoi_vy += self.config.max_speed * 1.5
+
+                if p.lon > self.aoi_bounds["max_lon"] - margin_lon:
+                    aoi_vx -= self.config.max_speed * 1.5
+                elif p.lon < self.aoi_bounds["min_lon"] + margin_lon:
+                    aoi_vx += self.config.max_speed * 1.5
+
+            # 6. Rüzgar Duman Sürüklenme Etkisi
+            wind_rad = math.radians(self.wind_direction_deg)
+            wind_vx = self.wind_speed_ms * math.sin(wind_rad) * 0.2
+            wind_vy = self.wind_speed_ms * math.cos(wind_rad) * 0.2
+
+            # 7. Keşif Rüzgarı (Stochastic Exploration)
             exp_vx = (random.random() - 0.5) * 2.0 * self.config.exploration_factor * self.config.max_speed
             exp_vy = (random.random() - 0.5) * 2.0 * self.config.exploration_factor * self.config.max_speed
 
             # Yeni Hız Vektörü Hesaplama
-            new_vx = (w * p.vx) + (cog_vx * 0.3) + (soc_vx * 0.3) + rep_vx + geo_vx + exp_vx
-            new_vy = (w * p.vy) + (cog_vy * 0.3) + (soc_vy * 0.3) + rep_vy + geo_vy + exp_vy
+            new_vx = (w * p.vx) + (cog_vx * 0.3) + (soc_vx * 0.3) + rep_vx + geo_vx + aoi_vx + wind_vx + exp_vx
+            new_vy = (w * p.vy) + (cog_vy * 0.3) + (soc_vy * 0.3) + rep_vy + geo_vy + aoi_vy + wind_vy + exp_vy
             new_vz = (w * p.vz) + (cog_vz * 0.2) + (soc_vz * 0.2)
 
             # Yatay Hız Limitleri (Saturate)

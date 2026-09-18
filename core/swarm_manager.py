@@ -29,11 +29,15 @@ class SwarmManager:
         model_path: str = "best.pt",
         center_lat: float = 37.0000,
         center_lon: float = 28.3000,
+        base_name: str = "Ana Operasyon Üssü",
         update_hz: float = 4.0
     ):
         self.center_lat = center_lat
         self.center_lon = center_lon
+        self.base_name = base_name
         self.update_interval = 1.0 / update_hz
+
+        self.environmental_fires: List[Tuple[float, float, float]] = []
 
         self.geofence_mgr = GeofenceManager()
         self.detector = FireDetector(model_path=model_path)
@@ -71,8 +75,23 @@ class SwarmManager:
     def register_drone(self, drone: BaseDrone) -> bool:
         """Yeni bir drone'u (Simüle, MAVLink veya Gönüllü) anında sürüye ekler."""
         with self._lock:
+            # Simüle drone ise mevcut çevresel yangın hedeflerini devral
+            if isinstance(drone, SimulatedDrone):
+                existing_target_coords = {(f[0], f[1]) for f in drone.fire_targets}
+                for ef in self.environmental_fires:
+                    if (ef[0], ef[1]) not in existing_target_coords:
+                        drone.fire_targets.append(ef)
+
             self.drones[drone.drone_id] = drone
             drone.connect()
+
+            # Eğer görev zaten aktifse yeni eklenen drone da derhal kalkış yapsın ve göreve başlasın
+            if self.is_mission_active:
+                if not drone.telemetry.is_in_air:
+                    drone.takeoff(target_alt=self.pso.config.search_altitude)
+                drone.mode = DroneMode.MISSION_PSO
+                drone.telemetry.mode = drone.mode
+
             t = drone.get_telemetry()
             self.pso.register_or_update_particle(
                 drone_id=drone.drone_id,
@@ -146,6 +165,137 @@ class SwarmManager:
             for drone in self.drones.values():
                 drone.return_to_launch()
             print("[SwarmManager] Tüm sürüye RTL komutu iletildi.")
+
+    def relocate_swarm(self, new_lat: float, new_lon: float, base_name: Optional[str] = None, regenerate_fires: bool = True):
+        """Operasyon merkezini (Üssü) yeni coğrafi koordinata taşır ve sürüyü yeniden konuşlandırır."""
+        with self._lock:
+            self.center_lat = new_lat
+            self.center_lon = new_lon
+            if base_name:
+                self.base_name = base_name
+            self.pso.reset_gbest()
+
+            # Yeni üs çevresinde gerçekçi yangın/duman odakları üret (eğer istenmişse)
+            if regenerate_fires:
+                self.environmental_fires = [
+                    (new_lat + 0.0035, new_lon + 0.0040, 0.95),  # ~450m Kuzeydoğu odağı
+                    (new_lat - 0.0030, new_lon - 0.0025, 0.88),  # ~380m Güneybatı odağı
+                ]
+                self.pso.discovered_fire_clusters = []
+                for f_lat, f_lon, intensity in self.environmental_fires:
+                    self.pso._update_fire_cluster(f_lat, f_lon, intensity)
+
+            # Drone'ları yeni merkezin etrafında daire şeklinde konuşlandır
+            idx = 0
+            n = len(self.drones)
+            for d_id, drone in self.drones.items():
+                angle = (2.0 * math.pi * idx) / max(1, n)
+                r_deg = 0.002  # ~200 metre yarıçap
+                d_lat = r_deg * math.cos(angle)
+                d_lon = r_deg * math.sin(angle)
+
+                new_pos_lat = new_lat + d_lat
+                new_pos_lon = new_lon + d_lon
+
+                if isinstance(drone, SimulatedDrone):
+                    drone.home_lat = new_pos_lat
+                    drone.home_lon = new_pos_lon
+                    drone.telemetry.lat = new_pos_lat
+                    drone.telemetry.lon = new_pos_lon
+                    drone.telemetry.alt = self.pso.config.search_altitude
+                    drone.telemetry.vx = 0.0
+                    drone.telemetry.vy = 0.0
+                    if regenerate_fires:
+                        drone.fire_targets = list(self.environmental_fires)
+                elif isinstance(drone, VolunteerDrone):
+                    drone.telemetry.lat = new_pos_lat
+                    drone.telemetry.lon = new_pos_lon
+
+                self.pso.register_or_update_particle(
+                    drone_id=d_id,
+                    lat=new_pos_lat,
+                    lon=new_pos_lon,
+                    alt=self.pso.config.search_altitude,
+                    fitness=0.0
+                )
+                idx += 1
+            print(f"[SwarmManager] Sürü yeni merkeze taşındı: ({new_lat:.5f}, {new_lon:.5f}) - Üs: {self.base_name}")
+
+    def add_manual_fire_spot(self, lat: float, lon: float, intensity: float = 0.95):
+        """Saha ihbarı veya kule uyarısı ile yeni bir yangın odağı ekler."""
+        with self._lock:
+            # Çevresel yangınlar listesine ekle
+            self.environmental_fires.append((lat, lon, intensity))
+
+            # Simüle drone'ların algılayabilmesi için listeye ekle
+            for drone in self.drones.values():
+                if isinstance(drone, SimulatedDrone):
+                    drone.fire_targets.append((lat, lon, intensity))
+
+            # Küme olarak kaydet
+            self.pso._update_fire_cluster(lat, lon, intensity)
+            print(f"[SwarmManager] Manuel yangın ihbarı eklendi: ({lat:.5f}, {lon:.5f}) - Şiddet: {intensity}")
+
+    def drone_rtl(self, drone_id: str) -> bool:
+        """Bireysel drone için acil üsse dönüş (RTL) emri verir."""
+        with self._lock:
+            if drone_id in self.drones:
+                self.drones[drone_id].return_to_launch()
+                print(f"[SwarmManager] {drone_id} için bireysel RTL komutu verildi.")
+                return True
+            return False
+
+    def drone_land(self, drone_id: str) -> bool:
+        """Bireysel drone için iniş emri verir."""
+        with self._lock:
+            if drone_id in self.drones:
+                self.drones[drone_id].land()
+                print(f"[SwarmManager] {drone_id} için iniş komutu verildi.")
+                return True
+            return False
+
+    def drone_takeoff(self, drone_id: str, alt: float = 40.0) -> bool:
+        """Bireysel drone için kalkış emri verir."""
+        with self._lock:
+            if drone_id in self.drones:
+                self.drones[drone_id].takeoff(target_alt=alt)
+                if self.is_mission_active:
+                    self.drones[drone_id].mode = DroneMode.MISSION_PSO
+                    self.drones[drone_id].telemetry.mode = DroneMode.MISSION_PSO
+                print(f"[SwarmManager] {drone_id} için kalkış komutu verildi.")
+                return True
+            return False
+
+    def set_wind(self, speed_ms: float, direction_deg: float):
+        """Saha rüzgar parametrelerini günceller."""
+        self.pso.set_wind(speed_ms, direction_deg)
+
+    def set_aoi(self, min_lat: float, max_lat: float, min_lon: float, max_lon: float):
+        """Arama operasyon sınırlarını (AOI) günceller."""
+        self.pso.set_aoi(min_lat, max_lat, min_lon, max_lon)
+
+    def export_incident_report(self) -> Dict[str, Any]:
+        """İtfaiye ve kriz merkezine iletilecek detaylı yangın tespit raporunu üretir."""
+        clusters = []
+        for c in self.pso.discovered_fire_clusters:
+            clusters.append({
+                "id": c.get("id"),
+                "latitude": round(c.get("lat"), 6),
+                "longitude": round(c.get("lon"), 6),
+                "google_maps_url": f"https://maps.google.com/?q={c.get('lat')},{c.get('lon')}",
+                "confidence_percent": round(c.get("confidence") * 100, 1),
+                "detections_count": c.get("detections_count"),
+                "status": "DOGRULANDI" if c.get("verified") else "SUPHELI_DUMAN"
+            })
+
+        return {
+            "report_timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "operation_center": {"lat": self.center_lat, "lon": self.center_lon},
+            "wind": {"speed_ms": self.pso.wind_speed_ms, "direction_deg": self.pso.wind_direction_deg},
+            "active_drones_count": len(self.drones),
+            "total_clusters_found": len(clusters),
+            "fire_clusters": clusters
+        }
 
     def close_zone(
         self,
@@ -279,6 +429,7 @@ class SwarmManager:
                 "speed": round(t.speed, 1),
                 "heading": round(t.heading, 1),
                 "battery": round(t.battery_percentage, 1),
+                "is_low_battery": getattr(t, "is_low_battery", False),
                 "current_score": round(t.current_fire_score, 2),
                 "pbest_score": round(p.pbest_fitness, 2) if p else 0.0,
                 "pbest_pos": [p.pbest_lat, p.pbest_lon] if p else [t.lat, t.lon],
@@ -290,6 +441,10 @@ class SwarmManager:
         return {
             "is_mission_active": self.is_mission_active,
             "mission_elapsed_seconds": int(time.time() - self.mission_start_time) if self.is_mission_active else 0,
+            "base_station": {"name": self.base_name, "lat": self.center_lat, "lon": self.center_lon},
+            "operation_center": {"lat": self.center_lat, "lon": self.center_lon},
+            "wind": {"speed_ms": self.pso.wind_speed_ms, "direction_deg": self.pso.wind_direction_deg},
+            "aoi_bounds": self.pso.aoi_bounds,
             "drones_count": len(self.drones),
             "gbest": {
                 "lat": self.pso.gbest_lat,

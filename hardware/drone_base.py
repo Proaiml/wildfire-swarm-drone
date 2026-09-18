@@ -51,6 +51,7 @@ class DroneTelemetry:
     detections_count: int = 0         # Toplam onaylanan tespit
     is_armed: bool = False
     is_in_air: bool = False
+    is_low_battery: bool = False
     last_heartbeat: float = 0.0
 
 

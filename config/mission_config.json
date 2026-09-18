@@ -1,0 +1,50 @@
+{
+  "base_station": {
+    "name": "Antalya Manavgat Orman Şefliği İleri Harekat Üssü",
+    "lat": 36.8850,
+    "lon": 30.7100,
+    "alt": 30.0
+  },
+  "default_aoi": {
+    "min_lat": 36.8650,
+    "max_lat": 36.9050,
+    "min_lon": 30.6850,
+    "max_lon": 30.7350
+  },
+  "wind": {
+    "speed_ms": 3.5,
+    "direction_deg": 45.0
+  },
+  "presets": [
+    {
+      "name": "Antalya (Manavgat / Taşağıl Orman Bölgesi)",
+      "lat": 36.8850,
+      "lon": 30.7100
+    },
+    {
+      "name": "Muğla (Marmaris / Değirmenyanı)",
+      "lat": 36.8500,
+      "lon": 28.1500
+    },
+    {
+      "name": "İzmir (Çeşme / Alaçatı Orman Sahası)",
+      "lat": 38.3000,
+      "lon": 26.3500
+    },
+    {
+      "name": "Çanakkale (Gelibolu Tarihi Alan Sahası)",
+      "lat": 40.2500,
+      "lon": 26.3500
+    },
+    {
+      "name": "Hatay (Belen / Amanos Dağları)",
+      "lat": 36.4900,
+      "lon": 36.2000
+    },
+    {
+      "name": "Bursa (Uludağ Etekleri Orman Hattı)",
+      "lat": 40.1200,
+      "lon": 29.0500
+    }
+  ]
+}
