@@ -88,13 +88,15 @@ class FireDetector:
           - total_fitness_score: PSO hedefi için birleşik yangın skoru (0.0 - 1.0+)
           - annotated_frame: HUD ve tespit kutucukları çizilmiş görüntü
         """
+        if frame is None or frame.size == 0:
+            return [], 0.0, frame
         h, w = frame.shape[:2]
         detections: List[DetectionResult] = []
         annotated_frame = frame.copy()
         total_fitness_score = 0.0
 
         if self.model is None or frame is None or frame.size == 0:
-            return detections, total_fitness_score, annotated_frame
+            return detections, min(1.0, total_fitness_score), annotated_frame
 
         try:
             results = self.model(
@@ -111,6 +113,8 @@ class FireDetector:
                     cls_id = int(box.cls[0].item())
                     conf = float(box.conf[0].item())
                     cls_name = self.model.names.get(cls_id, f"class_{cls_id}")
+                    if not any(label in cls_name.lower() for label in ("fire", "smoke", "flame")):
+                        continue
                     xyxy = box.xyxy[0].cpu().numpy().astype(int)
                     x1, y1, x2, y2 = xyxy[0], xyxy[1], xyxy[2], xyxy[3]
 
@@ -159,7 +163,7 @@ class FireDetector:
         except Exception as e:
             print(f"[FireDetector] Inferans hatası: {e}")
 
-        return detections, total_fitness_score, annotated_frame
+        return detections, min(1.0, total_fitness_score), annotated_frame
 
     def _estimate_ground_gps(
         self,

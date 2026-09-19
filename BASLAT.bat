@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 title PyreSwarm - Otonom Suru Drone Gorev Kontrol Merkezi
 color 0A
 cls
@@ -7,8 +8,8 @@ echo ===========================================================================
 echo     PYRESWARM: OTONOM YANGIN TESPIT VE 3D-PSO SURU DRONE SISTEMI
 echo ===============================================================================
 echo  [+] Yapay Zeka: YOLOv8 best.pt (Yangin ve Duman)
-echo  [+] Optimizasyon: 3D-PSO ve APF Carpisma Onleme
-echo  [+] Donanim Destegi: Pixhawk, PX4, ArduPilot MAVLink ve Simulator
+echo  [+] Planlama: Kapasite bazli sektorler ve kanit odakli PSO
+echo  [+] Calisma: Simulator, gonullu pilot rehberligi, MAVLink telemetri
 echo  [+] Yetenekler: Alan Kapatma Sihirbazi ve Dinamik Vatandas Katilimi
 echo ===============================================================================
 echo.

@@ -1,421 +1,267 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyreSwarm | Otonom Yangın Tespit & Sürü Drone Görev Kontrol Merkezi</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Leaflet & FontAwesome -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body class="gcs-body">
-
-    <!-- Üst Kontrol ve Telemetri Barı -->
-    <header class="top-bar">
-        <div class="brand-group">
-            <div class="logo-icon"><i class="fa-solid fa-fire-flame-curved"></i></div>
-            <div>
-                <h1 class="brand-title">PYRESWARM <span>GCS v2.5</span></h1>
-                <p class="brand-subtitle">3D-PSO OTONOM SÜRÜ YANGIN KOORDİNASYONU</p>
-            </div>
-        </div>
-
-        <!-- Saha Operasyon Bölgesi Arama Çubuğu -->
-        <div class="location-search-bar" style="display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border-glass);">
-            <i class="fa-solid fa-map-pin" style="color: #ff5500; font-size: 12px;"></i>
-            <input type="text" id="input-search-location" placeholder="Bölge / Şehir (Örn: Marmaris, Çanakkale)..." style="background: transparent; border: none; color: #fff; font-size: 11px; width: 170px; outline: none;">
-            <button id="btn-search-location" class="btn btn-outline btn-sm" style="padding: 3px 8px; font-size: 10px;" title="Şehre / Bölgeye Git"><i class="fa-solid fa-magnifying-glass"></i></button>
-            <button id="btn-gps-locate" class="btn btn-outline btn-sm" style="padding: 3px 8px; font-size: 10px; color: #00e5ff;" title="Mevcut GPS Konumumu Bul"><i class="fa-solid fa-crosshairs"></i></button>
-            <button id="btn-relocate-swarm" class="btn btn-warning btn-sm" style="padding: 3px 8px; font-size: 10px;" title="Operasyon Üssünü Harita Merkezine Taşı"><i class="fa-solid fa-anchor"></i> ÜSSÜ BURAYA TAŞI</button>
-        </div>
-
-        <div class="status-widgets">
-            <div class="stat-pill highlight-gold" id="widget-base-station" style="cursor: pointer;" title="Operasyon Üssü ve Başlangıç Konumunu Yönet">
-                <span class="label">OPERASYON ÜSSÜ</span>
-                <span class="value" id="stat-base-name" style="font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ffcc00; display: flex; align-items: center; gap: 4px;">
-                    <i class="fa-solid fa-anchor"></i> <span id="text-base-name">Antalya Üssü</span>
-                </span>
-            </div>
-            <div class="stat-pill">
-                <span class="label">SÜRÜ BOYUTU</span>
-                <span class="value" id="stat-drone-count">0</span>
-            </div>
-            <div class="stat-pill highlight-gold">
-                <span class="label">KÜRESEL EN İYİ (GBEST)</span>
-                <span class="value" id="stat-gbest-score">0.00</span>
-            </div>
-            <div class="stat-pill highlight-red">
-                <span class="label">YANGIN ODAKLARI</span>
-                <span class="value" id="stat-fire-count">0</span>
-            </div>
-            <div class="stat-pill" id="widget-wind-ctrl" style="cursor: pointer;" title="Saha Rüzgar Yönü ve Hızını Değiştir">
-                <span class="label">RÜZGAR (SAHA)</span>
-                <span class="value font-mono" id="stat-wind-val" style="color: #00e5ff; display: flex; align-items: center; gap: 4px;">
-                    <i class="fa-solid fa-location-arrow" id="wind-arrow-icon" style="transform: rotate(45deg); font-size: 12px;"></i>
-                    <span id="wind-speed-text">3.5 m/s</span>
-                </span>
-            </div>
-            <div class="stat-pill">
-                <span class="label">GÖREV SÜRESİ</span>
-                <span class="value font-mono" id="stat-mission-time">00:00</span>
-            </div>
-        </div>
-
-        <div class="action-buttons">
-            <button id="btn-open-add-drone" class="btn btn-success" style="background:#00c853; color:#fff; border-color:#00e676; font-weight:700;" title="Sürüye Yeni Drone Ekle ve Başlat"><i class="fa-solid fa-plus"></i> DRONE EKLE</button>
-            <button id="btn-open-base-modal" class="btn btn-warning" style="background:#ff9100; color:#fff; border-color:#ffa726;" title="Operasyon Üssü ve Başlangıç Konumu Ayarları"><i class="fa-solid fa-location-dot"></i> ÜS AYARLARI</button>
-            <button id="btn-start" class="btn btn-primary"><i class="fa-solid fa-play"></i> BAŞLAT</button>
-            <button id="btn-pause" class="btn btn-warning"><i class="fa-solid fa-pause"></i> DURAKLAT</button>
-            <button id="btn-rtl" class="btn btn-danger"><i class="fa-solid fa-house-chimney"></i> ALL RTL</button>
-            <button id="btn-export-incident" class="btn btn-outline" style="color:#00ff88; border-color:#00ff88;" title="İtfaiye ve Kriz Masası için Koordinat Raporu İndir"><i class="fa-solid fa-file-export"></i> RAPOR</button>
-            <a href="/docs/PyreSwarm_Kullanim_Kilavuzu.pdf" target="_blank" class="btn btn-outline" style="color:#ff8800; border-color:#ff8800;" title="Kullanım Kılavuzunu İndir"><i class="fa-solid fa-file-pdf"></i> KILAVUZ</a>
-            <a href="/docs/PyreSwarm_Matematiksel_Model_ve_Metrik_Raporu.pdf" target="_blank" class="btn btn-outline" style="color:#00e5ff; border-color:#00e5ff;" title="Matematiksel Metrik Raporunu İndir"><i class="fa-solid fa-chart-line"></i> METRİK</a>
-        </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PyreSwarm • Ortak operasyon merkezi</title>
+    <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="/static/css/style.css?v=3" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/"
+        ><span class="brand-icon">◈</span
+        ><span>PYRESWARM<small>ORTAK OPERASYON MERKEZİ</small></span></a
+      ><span class="environment">SİMÜLASYON + PİLOT DESTEĞİ</span>
+      <div class="connection" id="connection" role="status">Bağlanıyor…</div>
+      <a href="/docs/HUB_GUIDE_TR.md" target="_blank">Kullanım kılavuzu ↗</a>
     </header>
-
-    <!-- Ana Çalışma Alanı -->
-    <main class="gcs-main">
-        
-        <!-- Sol Panel: Telemetri & Sürü Sıralaması -->
-        <aside class="side-panel left-panel">
-            <div class="panel-header">
-                <h2><i class="fa-solid fa-network-wired"></i> SÜRÜ FİLOSU & LİDERLİK</h2>
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <button id="btn-add-drone-fleet" class="btn btn-outline btn-sm" style="color:#00ff88; border-color:#00ff88; font-size:10px; padding:2px 8px;" title="Yeni Drone Konuşlandır"><i class="fa-solid fa-plus"></i> EKLE</button>
-                    <span class="badge" id="swarm-mode-badge">BEKLEMEDE</span>
-                </div>
-            </div>
-
-            <!-- Drone Listesi -->
-            <div class="table-container">
-                <table class="telemetry-table" id="drone-table">
-                    <thead>
-                        <tr>
-                            <th>DRONE</th>
-                            <th>TİP</th>
-                            <th>İRTİFA</th>
-                            <th>HIZ</th>
-                            <th>BATARYA</th>
-                            <th>SKOR</th>
-                            <th style="text-align:center;">EYLEM</th>
-                        </tr>
-                    </thead>
-                    <tbody id="drone-table-body">
-                        <!-- JS ile doldurulacak -->
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-trophy"></i> EN İYİ YANGIN AVCISI (LEADERBOARD)</h3>
-                <div class="leader-card" id="top-hunter-card">
-                    <div class="trophy-icon"><i class="fa-solid fa-medal"></i></div>
-                    <div class="hunter-info">
-                        <span class="hunter-id" id="top-hunter-id">ALPHA-01</span>
-                        <span class="hunter-desc" id="top-hunter-desc">Toplam 0 tespit | Skor: 0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-calculator"></i> MATEMATİKSEL KAPSAMA & SÜRE HESAPLAYICI</h3>
-                <div class="metrics-calc-box" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); padding: 10px; border-radius: 8px;">
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                        <div style="flex: 1;">
-                            <label style="font-size: 10px; color: var(--text-dim);">Alan (km²):</label>
-                            <input type="number" id="calc-area" value="10" min="0.5" max="500" step="0.5" style="width: 100%; background: #0a0f16; border: 1px solid var(--border-glass); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px;">
-                        </div>
-                        <div style="flex: 1;">
-                            <label style="font-size: 10px; color: var(--text-dim);">Drone Sayısı:</label>
-                            <input type="number" id="calc-drones" value="4" min="1" max="50" step="1" style="width: 100%; background: #0a0f16; border: 1px solid var(--border-glass); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px;">
-                        </div>
-                    </div>
-                    <div class="pso-info-box" style="grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div class="pso-item"><span>Sürü Tarama Hızı:</span> <strong id="calc-speed-res">22.5 km²/h</strong></div>
-                        <div class="pso-item"><span>%95 Tespit Süresi:</span> <strong id="calc-time-res" style="color: #ffcc00;">8.7 dk</strong></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-sliders"></i> PSO OPTİMİZASYON KONTROLLERİ</h3>
-                <div class="pso-info-box">
-                    <div class="pso-item"><span>Hedef Arama İrtifası:</span> <strong>85 m</strong></div>
-                    <div class="pso-item"><span>İnceleme İrtifası:</span> <strong>35 m</strong></div>
-                    <div class="pso-item"><span>Sürü İçi Güvenli Mesafe:</span> <strong>30 m</strong></div>
-                    <div class="pso-item"><span>Sosyal Öğrenme (c2):</span> <strong>1.65</strong></div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Orta Panel: Leaflet Haritası -->
-        <section class="map-section">
-            <div class="map-overlay-tools">
-                <div class="tool-group">
-                    <button id="btn-mode-spawn" class="tool-btn" style="color:#00ff88;" title="Haritaya Tıklayarak Yeni Drone Konuşlandır"><i class="fa-solid fa-plane-circle-check"></i> DRONE KOY</button>
-                    <button id="btn-quick-fire" class="tool-btn" style="color:#ff3300;" title="Saha Tatbikatı: 400m Yakına Yangın İhbarı Bırak"><i class="fa-solid fa-fire-burner"></i> +1 YANGIN</button>
-                    <button id="btn-quick-aoi-10" class="tool-btn" style="color:#00e5ff;" title="Üs Merkezli 10 km² Standart Arama Sınırı Çiz"><i class="fa-solid fa-expand"></i> 10 km² AOI</button>
-                    <button id="btn-mode-firespot" class="tool-btn" style="color:#ff8800;" title="Haritaya Tıklayarak Yangın İhbarı Ekle"><i class="fa-solid fa-fire"></i> NOKTA YANGIN</button>
-                    <button id="btn-draw-aoi" class="tool-btn" style="color:#00e5ff;" title="Sürünün Operasyon Arama Sınırını Çiz (AOI)"><i class="fa-solid fa-vector-square"></i> ÇİZİM AOI</button>
-                    <button id="btn-draw-lake" class="tool-btn" title="Göl / Su Alanı Kapat"><i class="fa-solid fa-water"></i> GÖL KAPAT</button>
-                    <button id="btn-draw-extinguished" class="tool-btn" title="Söndürülmüş Yangın Bölgesini Kapat"><i class="fa-solid fa-ban"></i> SÖNDÜRÜLDÜ (KAPAT)</button>
-                    <button id="btn-clear-draw" class="tool-btn tool-btn-danger" style="display:none;" id="btn-cancel-draw"><i class="fa-solid fa-xmark"></i> İPTAL</button>
-                </div>
-                <div class="draw-instruction" id="draw-instruction" style="display:none;">
-                    <span id="draw-instruction-text">Haritaya tıklayarak en az 3 köşe noktası belirleyin.</span>
-                </div>
-            </div>
-            <div id="map" class="map-viewport"></div>
-            
-            <!-- Harita Sağ Tık Bağlam Menüsü -->
-            <div id="map-context-menu" class="context-menu" style="display:none;">
-                <div class="context-item" id="ctx-set-base"><i class="fa-solid fa-anchor" style="color:#ffcc00;"></i> Operasyon Üssünü Buraya Taşı</div>
-                <div class="context-item" id="ctx-spawn-drone"><i class="fa-solid fa-plane-up" style="color:#00ff88;"></i> Buraya Drone Konuşlandır</div>
-                <div class="context-item" id="ctx-add-fire"><i class="fa-solid fa-fire" style="color:#ff5500;"></i> Buraya Yangın İhbarı Ekle</div>
-                <div class="context-divider"></div>
-                <div class="context-item" id="ctx-close-extinguished"><i class="fa-solid fa-ban" style="color:#ff8800;"></i> Söndürülmüş Bölge Olarak Kapat</div>
-            </div>
-        </section>
-
-        <!-- Sağ Panel: Canlı Kamera & Yangın Detayları -->
-        <aside class="side-panel right-panel">
-            <div class="panel-header">
-                <h2><i class="fa-solid fa-video"></i> CANLI GÖRÜŞ (HUD)</h2>
-                <select id="video-drone-select" class="dropdown">
-                    <!-- JS ile doldurulacak -->
-                </select>
-            </div>
-
-            <!-- Canlı Kamera Kareleri -->
-            <div class="video-container">
-                <img id="live-video-feed" src="" alt="Drone Video Yayını" class="video-feed-img">
-                <div class="video-hud-overlay">
-                    <div class="hud-item-top">
-                        <span class="hud-live-tag"><i class="fa-solid fa-circle"></i> CANLI</span>
-                        <span id="hud-cam-drone-id">ALPHA-01</span>
-                    </div>
-                    <div class="hud-reticle"></div>
-                    <div class="hud-item-bottom">
-                        <span id="hud-cam-telemetry">ALT: 0m | CONF: 0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tespit Edilen Yangınlar & Kapatılan Bölgeler -->
-            <div class="panel-section scrollable-list">
-                <h3><i class="fa-solid fa-fire"></i> TESPİT EDİLEN YANGIN KÜMELERİ</h3>
-                <div id="fire-clusters-list" class="clusters-container">
-                    <div class="empty-state">Henüz teyit edilmiş yangın odağı yok.</div>
-                </div>
-            </div>
-
-            <div class="panel-section">
-                <h3><i class="fa-solid fa-draw-polygon"></i> KAPATILMIŞ ALANLAR (TABOO / GEOFENCE)</h3>
-                <div id="geofence-zones-list" class="zones-container">
-                    <!-- JS ile doldurulacak -->
-                </div>
-            </div>
-        </aside>
-
+    <section class="missionbar">
+      <div>
+        <p class="eyebrow">GÖREV YÖNETİMİ</p>
+        <label for="mission-kind" class="sr-only">Görev türü</label
+        ><select id="mission-kind">
+          <option value="fire">Yangın keşfi</option>
+          <option value="sar">Arama ve kurtarma</option>
+        </select>
+      </div>
+      <div class="mission-info">
+        <span id="mission-status" class="badge">BEKLEMEDE</span
+        ><span id="mission-time">00:00</span><small id="base-name"></small>
+      </div>
+      <div class="controls">
+        <button id="start" class="primary">▶ Başlat</button
+        ><button id="pause">Ⅱ Duraklat</button
+        ><button id="rtl" class="danger">↩ Tüm simülasyon filosu RTL</button>
+      </div>
+    </section>
+    <main>
+      <aside class="fleet-panel panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">KATILIM & KOORDİNASYON</p>
+            <h2>Operasyon filosu <span id="fleet-count">0</span></h2>
+          </div>
+          <button id="add-drone" class="small primary" aria-label="Drone ekle">
+            + Ekle
+          </button>
+        </div>
+        <div class="panel-note">
+          Sektörler kamera görüşü, arama irtifası ve hız kapasitesine göre
+          paylaştırılır.
+        </div>
+        <div id="fleet" class="fleet-list"></div>
+        <div class="fleet-footer">
+          <strong>Her drone için uygun katılım</strong>
+          <p>
+            Simülasyon • Gönüllü pilot rehberliği • MAVLink telemetri gözlemi
+          </p>
+        </div>
+      </aside>
+      <section class="map-panel panel">
+        <div class="map-heading">
+          <div>
+            <p class="eyebrow">OPERASYON SAHASI</p>
+            <h2>Kapsama & keşif</h2>
+          </div>
+          <button id="fit-map" class="small">Sahaya odaklan</button>
+        </div>
+        <div class="map-tools">
+          <button data-tool="aoi">▧ Arama alanı</button
+          ><button data-tool="no_fly_zone">⊘ Yasak bölge</button
+          ><button data-tool="water_body">≈ Göl / alan kapat</button
+          ><button data-tool="report">＋ İhbar</button
+          ><button data-tool="scenario">◇ Tatbikat hedefi</button
+          ><button id="base-settings">Üs</button>
+        </div>
+        <div class="draw-help" id="draw-help" hidden>
+          <span id="draw-text"></span
+          ><button id="finish-draw">Alanı tamamla</button
+          ><button id="cancel-draw">İptal</button>
+        </div>
+        <div id="map" aria-label="Drone konumları ve görev sektörleri"></div>
+        <div class="map-legend">
+          <span><i class="dot cyan"></i> Drone / uçuş izi</span
+          ><span><i class="dot amber"></i> Şüpheli olay</span
+          ><span><i class="dot red"></i> Kapalı alan</span
+          ><label
+            ><input type="checkbox" id="sectors-toggle" checked />
+            Sektörler</label
+          >
+        </div>
+      </section>
+      <aside class="evidence-panel panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">GÖZLEM & TEYİT</p>
+            <h2>Olay merkezi</h2>
+          </div>
+          <button id="export" class="small">Rapor ↓</button>
+        </div>
+        <div class="camera">
+          <div class="camera-heading">
+            <span id="camera-label">SENTETİK KAMERA</span
+            ><span id="camera-id">—</span>
+          </div>
+          <img id="video" alt="Seçili drone kamera görüntüsü" />
+          <div id="camera-status">Drone seçin</div>
+        </div>
+        <div class="model-note" id="model-note">
+          Algılama durumu bekleniyor…
+        </div>
+        <div class="incident-heading">
+          <h3>İhbar ve tespitler</h3>
+          <span id="incident-count">0</span>
+        </div>
+        <div id="incidents" class="incident-list"></div>
+        <details class="zones">
+          <summary>Kapatılmış alanlar <span id="zone-count">0</span></summary>
+          <div id="zones"></div>
+        </details>
+      </aside>
     </main>
-
-    <!-- Modal: Operasyon Üssü ve Başlangıç Konumu Yönetimi -->
-    <div id="base-modal" class="modal">
-        <div class="modal-content" style="width: 460px;">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-anchor" style="color:#ffcc00;"></i> OPERASYON ÜSSÜ & BAŞLANGIÇ KONUMU</h3>
-                <button class="modal-close" id="btn-close-base">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">
-                    Saha operasyon merkezi, sürünün kalkış / eve dönüş (RTL) referansıdır. Belirlediğiniz konum sisteme kalıcı kaydedilir.
-                </p>
-
-                <div class="form-group">
-                    <label>Hızlı Bölge Ön Tanımları (Orman Yangını Sahaları):</label>
-                    <select id="select-base-preset" class="dropdown" style="width:100%; padding:6px; background:#0c121c; color:#fff; border:1px solid var(--border-glass); border-radius:6px; font-size:11px;">
-                        <option value="">-- Bölge Seçiniz (Örn: Antalya, Muğla, Çanakkale) --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Operasyon Üssü Adı:</label>
-                    <input type="text" id="input-base-name" placeholder="Örn: Antalya Manavgat Orman Şefliği İleri Üssü" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:6px; border-radius:4px; font-size:11px;">
-                </div>
-
-                <div class="form-row" style="display:flex; gap:8px;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Enlem (Latitude):</label>
-                        <input type="number" step="0.0001" id="input-base-lat" value="36.8850" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:6px; border-radius:4px; font-size:11px;">
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Boylam (Longitude):</label>
-                        <input type="number" step="0.0001" id="input-base-lon" value="30.7100" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:6px; border-radius:4px; font-size:11px;">
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button id="btn-base-get-gps" class="btn btn-outline btn-sm" style="flex:1; font-size:10px; color:#00e5ff;"><i class="fa-solid fa-crosshairs"></i> Cihazımın GPS'ini Al</button>
-                    <button id="btn-base-get-center" class="btn btn-outline btn-sm" style="flex:1; font-size:10px; color:#ffcc00;"><i class="fa-solid fa-map"></i> Harita Merkezini Al</button>
-                </div>
-
-                <div style="margin-top:12px; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid var(--border-glass); font-size:11px; display:flex; flex-direction:column; gap:6px;">
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                        <input type="checkbox" id="chk-redeploy-drones" checked> Sürü drone'larını da bu yeni üsse taşı ve konuşlandır
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-                        <input type="checkbox" id="chk-regen-fires" checked> Yeni üs çevresinde gerçekçi yangın/duman odakları başlat
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#00ff88;">
-                        <input type="checkbox" id="chk-save-permanent" checked> <strong>Kalıcı başlangıç konumu olarak kaydet (Yenilense de kalır)</strong>
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-base">İPTAL</button>
-                <button class="btn btn-primary" id="btn-submit-base"><i class="fa-solid fa-check"></i> ÜSSÜ GÜNCELLE VE KONUŞLAN</button>
-            </div>
+    <footer class="statusbar">
+      <span id="readiness"
+        >Fiziksel otonom uçuş doğrulanmadı • Kontrol: simülasyon</span
+      ><span id="last-update">Telemetri bekleniyor</span>
+    </footer>
+    <div id="toast" role="status" hidden></div>
+    <dialog id="drone-dialog">
+      <form id="drone-form">
+        <div class="section-heading">
+          <h2>Filoya katılım</h2>
+          <button type="button" data-close="drone-dialog" aria-label="Kapat">
+            ×
+          </button>
         </div>
-    </div>
-
-    <!-- Modal: Kapsamlı Yeni Drone Ekle / Konuşlandır -->
-    <div id="add-drone-modal" class="modal">
-        <div class="modal-content" style="width: 440px;">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-plane-circle-check" style="color:#00ff88;"></i> YENİ DRONE EKLE & KONUŞLANDIR</h3>
-                <button class="modal-close" id="btn-close-add-drone">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">
-                    Filoya yeni bir otonom arama birimi, fiziksel Pixhawk MAVLink donanımı veya gönüllü drone bağlayın.
-                </p>
-
-                <div class="form-group">
-                    <label>Drone Çağrı Kodu / ID:</label>
-                    <input type="text" id="input-new-drone-id" placeholder="Örn: SWARM-05 veya ALPHA-05" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:6px; border-radius:4px; font-size:11px;">
-                </div>
-
-                <div class="form-group">
-                    <label>Drone Tipi / Entegrasyon Modeli:</label>
-                    <select id="select-new-drone-type" class="dropdown" style="width:100%; padding:6px; background:#0c121c; color:#fff; border:1px solid var(--border-glass); border-radius:6px; font-size:11px;">
-                        <option value="simulated" selected>Otonom Sürü Drone (YOLO Kamera, 6-DOF Fizik, PSO Arama)</option>
-                        <option value="mavlink">MAVLink / Pixhawk (Gerçek Saha Donanımı - PX4/ArduPilot)</option>
-                        <option value="volunteer">Vatandaş / Gönüllü Drone (Web/REST Telemetri Köprüsü)</option>
-                    </select>
-                </div>
-
-                <!-- MAVLink Alanları (Koşullu) -->
-                <div id="field-mavlink-extra" style="display:none; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; margin-bottom:8px;">
-                    <div class="form-group">
-                        <label>Bağlantı Adresi (UDP / Serial):</label>
-                        <input type="text" id="input-mavlink-conn" value="udpin:0.0.0.0:14550" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:4px; border-radius:4px; font-size:11px;">
-                    </div>
-                    <div class="form-group">
-                        <label>RTSP / Video Akış Adresi:</label>
-                        <input type="text" id="input-mavlink-cam" placeholder="rtsp://192.168.1.100:8554/live" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:4px; border-radius:4px; font-size:11px;">
-                    </div>
-                </div>
-
-                <!-- Gönüllü Alanları (Koşullu) -->
-                <div id="field-volunteer-extra" style="display:none; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; margin-bottom:8px;">
-                    <div class="form-group">
-                        <label>Pilot / Kurum Adı:</label>
-                        <input type="text" id="input-vol-pilot" placeholder="Ahmet Yılmaz (Sivil Gönüllü)" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:4px; border-radius:4px; font-size:11px;">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Konuşlanma Yeri:</label>
-                    <select id="select-spawn-location" class="dropdown" style="width:100%; padding:6px; background:#0c121c; color:#fff; border:1px solid var(--border-glass); border-radius:6px; font-size:11px;">
-                        <option value="base" selected>📍 Ana Operasyon Üssü (Kalkış Noktası)</option>
-                        <option value="map_center">🗺️ Haritanın Mevcut Görünüm Merkezi</option>
-                        <option value="custom">✏️ Özel Koordinat Gir</option>
-                    </select>
-                </div>
-
-                <div id="field-custom-spawn-coords" style="display:none;" class="form-row" style="display:flex; gap:8px;">
-                    <div class="form-group" style="flex:1;">
-                        <label>Enlem:</label>
-                        <input type="number" step="0.0001" id="input-spawn-lat" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:4px; border-radius:4px; font-size:11px;">
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>Boylam:</label>
-                        <input type="number" step="0.0001" id="input-spawn-lon" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:4px; border-radius:4px; font-size:11px;">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Başlangıç Arama İrtifası (m):</label>
-                    <input type="number" id="input-spawn-alt" value="40" min="15" max="150" step="5" style="width:100%; background:#0a0f16; border:1px solid var(--border-glass); color:#fff; padding:6px; border-radius:4px; font-size:11px;">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-add-drone">İPTAL</button>
-                <button class="btn btn-primary" id="btn-submit-add-drone" style="background:#00c853; border-color:#00e676;"><i class="fa-solid fa-plus"></i> SÜRÜYE DAHİL ET</button>
-            </div>
+        <p class="dialog-note">
+          Gönüllü pilotlar gerçek telemetriyle katılır. Hub rota önerir; pilot
+          kendi drone’unun kontrolünü korur.
+        </p>
+        <label
+          >Katılım türü<select name="drone_type" id="drone-type">
+            <option value="simulated">Simülasyon drone’u</option>
+            <option value="volunteer">Gönüllü pilot / marka bağımsız</option>
+            <option value="mavlink">MAVLink — yalnızca telemetri</option>
+          </select></label
+        >
+        <div class="form-grid">
+          <label
+            >Drone kimliği<input
+              name="drone_id"
+              placeholder="Örn. EKIP-05"
+              pattern="[A-Za-z0-9_-]+"
+              maxlength="48" /></label
+          ><label
+            >Pilot adı<input
+              name="pilot_name"
+              placeholder="Ekip / pilot"
+              maxlength="80" /></label
+          ><label
+            >Enlem<input
+              name="lat"
+              type="number"
+              step="any"
+              min="-85"
+              max="85"
+              required /></label
+          ><label
+            >Boylam<input
+              name="lon"
+              type="number"
+              step="any"
+              min="-180"
+              max="180"
+              required /></label
+          ><label
+            >Arama irtifası (m)<input
+              name="search_altitude_m"
+              type="number"
+              min="25"
+              max="120"
+              value="60"
+              required /></label
+          ><label
+            >Azami hız (m/s)<input
+              name="max_speed_ms"
+              type="number"
+              min="1"
+              max="14"
+              value="10"
+              required /></label
+          ><label
+            >Azami irtifa (m)<input
+              name="max_altitude_m"
+              type="number"
+              min="25"
+              max="120"
+              value="120"
+              required /></label
+          ><label
+            >Yatay kamera görüşü (°)<input
+              name="camera_hfov_deg"
+              type="number"
+              min="20"
+              max="120"
+              value="84"
+              required
+          /></label>
         </div>
-    </div>
-
-    <!-- Modal: WhatsApp & Telsiz İhbar Paketi -->
-    <div id="dispatch-modal" class="modal">
-        <div class="modal-content" style="width: 440px;">
-            <div class="modal-header">
-                <h3><i class="fa-brands fa-whatsapp" style="color:#00ff88;"></i> OGM / İTFAİYE TELSİZ İHBAR METNİ</h3>
-                <button class="modal-close" id="btn-close-dispatch">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">
-                    Aşağıdaki metin WhatsApp, Telegram veya Telsiz operatörlerine doğrudan aktarılacak şekilde formatlanmıştır:
-                </p>
-                <textarea id="text-dispatch-content" readonly style="width:100%; height:160px; background:#070b10; border:1px solid var(--border-glass); color:#00e5ff; font-family:'JetBrains Mono', monospace; font-size:11px; padding:8px; border-radius:6px; resize:none;"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-close-dispatch-btn">KAPAT</button>
-                <button class="btn btn-primary" id="btn-copy-dispatch"><i class="fa-solid fa-copy"></i> PANOUYA KOPYALA</button>
-            </div>
+        <label id="mavlink-field" hidden
+          >MAVLink bağlantısı<input
+            name="connection_string"
+            value="udpin:127.0.0.1:14550"
+        /></label>
+        <div class="dialog-actions">
+          <button type="button" data-close="drone-dialog">Vazgeç</button
+          ><button class="primary" type="submit">Filoya ekle</button>
         </div>
-    </div>
-
-    <!-- Modal: Saha Rüzgar Parametreleri -->
-    <div id="wind-modal" class="modal">
-        <div class="modal-content" style="width: 380px;">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-wind" style="color:#00e5ff;"></i> SAHA RÜZGAR AYARLARI</h3>
-                <button class="modal-close" id="btn-close-wind">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">
-                    Rüzgar yönü ve hızı duman yayılımını ve sürünün karşı-rüzgar (upwind) tarama stratejisini doğrudan etkiler.
-                </p>
-                <div class="form-group">
-                    <label>Rüzgar Hızı: <strong id="val-wind-speed">3.5 m/s (~13 km/h)</strong></label>
-                    <input type="range" id="input-wind-speed" min="0" max="25" step="0.5" value="3.5" style="width:100%; cursor:pointer;">
-                </div>
-                <div class="form-group">
-                    <label>Rüzgar Yönü: <strong id="val-wind-dir">45° (Poyraz / KD)</strong></label>
-                    <input type="range" id="input-wind-dir" min="0" max="359" step="5" value="45" style="width:100%; cursor:pointer;">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="btn-cancel-wind">İPTAL</button>
-                <button class="btn btn-primary" id="btn-submit-wind"><i class="fa-solid fa-check"></i> RÜZGARI GÜNCELLE</button>
-            </div>
+        <p id="join-result" role="status"></p>
+      </form>
+    </dialog>
+    <dialog id="base-dialog">
+      <form id="base-form">
+        <div class="section-heading">
+          <h2>Simülasyon üssü</h2>
+          <button type="button" data-close="base-dialog" aria-label="Kapat">
+            ×
+          </button>
         </div>
-    </div>
-
-    <!-- Toast Bildirim Konteyneri -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/static/js/dashboard.js"></script>
-</body>
+        <p class="dialog-note">
+          Simülasyon durur ve drone’lar yeniden konuşlandırılır. Gönüllü veya
+          fiziksel drone konumları değişmez.
+        </p>
+        <label>Üs adı<input name="name" required maxlength="100" /></label>
+        <div class="form-grid">
+          <label
+            >Enlem<input
+              name="lat"
+              type="number"
+              step="any"
+              min="-85"
+              max="85"
+              required /></label
+          ><label
+            >Boylam<input
+              name="lon"
+              type="number"
+              step="any"
+              min="-180"
+              max="180"
+              required
+          /></label>
+        </div>
+        <label class="inline"
+          ><input type="checkbox" name="save" /> Sonraki açılış için
+          kaydet</label
+        >
+        <div class="dialog-actions">
+          <button type="button" data-close="base-dialog">Vazgeç</button
+          ><button type="submit" class="primary">Yeniden konuşlandır</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/static/vendor/leaflet/leaflet.js"></script>
+    <script src="/static/js/dashboard.js?v=3"></script>
+  </body>
 </html>

@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm - Drone Entegrasyon ve Donanım Adaptör Rehberi (Drone Integration)
 
 ## 1. Mimarisi

@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm - Test Stratejisi ve Doğrulama Rehberi (Testing)
 
 ## 1. Test Piramidi ve Kapsam

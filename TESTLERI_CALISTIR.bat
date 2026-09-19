@@ -1,10 +1,11 @@
 @echo off
+cd /d "%~dp0"
 title PyreSwarm - Kapsamli Test Paketi
 color 0B
 cls
 
 echo ===============================================================================
-echo     PYRESWARM: 57 BIRIM VE ENTEGRASYON TESTI KOSUTURULUYOR
+echo     PYRESWARM: BIRIM, ENTEGRASYON VE HUB REGRESYON TESTLERI
 echo ===============================================================================
 echo.
 

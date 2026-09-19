@@ -1,3 +1,13 @@
+# 2026-09-19 — Ortak operasyon merkezi
+
+- PSO hareket güncellemesi, kapasite ağırlıklı devriye, sınırlı kanıt incelemesi ve poligon dolanması.
+- Ayrı SAR görevi, kaynaklı olay/operatör teyidi ve gizli tatbikat hedefleri.
+- Gönüllü gerçek telemetri / pilot rehberliği protokolü ve örnek istemci.
+- NED/ENU, LAND, kayıt hataları, zaman aşımı, kalkış ve batarya rezervi düzeltmeleri.
+- Responsive görev merkezi; yerel Leaflet bağımlılığı.
+- 89 test; yeniden üretilebilir 600 saniyelik hub senaryosu.
+- Güncel saha hazırlık sınırları; fiziksel otonom uçuş henüz doğrulanmadı.
+
 # Değişiklik Günlüğü (Changelog)
 
 Tüm önemli değişiklikler bu dosyada belgelenecektir.

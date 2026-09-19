@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](docs/REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm — Proje Teknik Durum ve Mimari Denetim Raporu (Project Audit)
 **Tarih:** 2026-09-18  
 **Versiyon:** 2.5.0-audit  

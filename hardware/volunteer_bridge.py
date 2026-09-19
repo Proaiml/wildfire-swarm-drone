@@ -32,6 +32,7 @@ class VolunteerDrone(BaseDrone):
     ):
         super().__init__(drone_id=drone_id, drone_type=DroneType.VOLUNTEER)
         self.pilot_name = pilot_name
+        self.last_measurement_time = 0.0
         self.camera_stream_url = camera_stream_url
 
         self.telemetry.lat = initial_lat
@@ -81,9 +82,7 @@ class VolunteerDrone(BaseDrone):
         return True
 
     def takeoff(self, target_alt: float = 30.0) -> bool:
-        self.telemetry.alt = target_alt
-        self.telemetry.is_in_air = True
-        return True
+        return False  # Advisory bridge cannot command a physical takeoff.
 
     def land(self) -> bool:
         self.mode = DroneMode.LANDING
@@ -103,33 +102,28 @@ class VolunteerDrone(BaseDrone):
         if math.hypot(vx, vy) > 0.2:
             self.assigned_heading = (math.degrees(math.atan2(vx, vy)) + 360.0) % 360.0
 
-        # Eğer canlı pilot henüz GPS beslemiyorsa yumuşak simülasyon hareketi uygula
-        dt = 0.5
-        cos_lat = math.cos(math.radians(self.telemetry.lat))
-        m_per_deg_lon = self.METERS_PER_DEGREE * cos_lat
-
-        self.telemetry.vx = vx
-        self.telemetry.vy = vy
-        self.telemetry.vz = vz
-        self.telemetry.lon += (vx * dt) / m_per_deg_lon
-        self.telemetry.lat += (vy * dt) / self.METERS_PER_DEGREE
-        self.telemetry.alt = max(5.0, self.telemetry.alt + vz * dt)
-        self.telemetry.speed = math.hypot(vx, vy)
-        self.telemetry.heading = self.assigned_heading
-
         return True
 
     def goto_coordinate(self, lat: float, lon: float, alt: float, speed: float = 8.0) -> bool:
         self.assigned_target_alt = alt
         return True
 
-    def update_from_external(self, lat: float, lon: float, alt: float, battery: float = 100.0):
+    def update_from_external(self, lat: float, lon: float, alt: float, battery: float = 100.0, captured_at: float = None):
         """Vatandaşın telefonundan veya otopilotundan gelen gerçek GPS telemetrisi."""
+        measured = time.time() if captured_at is None else captured_at
+        if not all(math.isfinite(v) for v in (lat,lon,alt,battery,measured)):
+            raise ValueError("Telemetri sonlu değerler içermeli")
+        if not -85 <= lat <= 85 or not -180 <= lon <= 180 or not 0 <= alt <= 120 or not 0 <= battery <= 100:
+            raise ValueError("Telemetri izin verilen aralığın dışında")
+        if measured <= self.last_measurement_time or not -1 <= time.time()-measured <= 3:
+            raise ValueError("Eski, tekrar gönderilmiş veya gelecek zamanlı telemetri")
+        self.last_measurement_time = measured
         self.telemetry.lat = lat
         self.telemetry.lon = lon
         self.telemetry.alt = alt
         self.telemetry.battery_percentage = battery
-        self.telemetry.last_heartbeat = time.time()
+        self.telemetry.is_in_air = alt > 1
+        self.telemetry.last_heartbeat = measured
 
     def update_camera_frame(self, frame: np.ndarray):
         """Web veya telefon kamerasından gelen görüntüyü günceller."""
@@ -137,7 +131,6 @@ class VolunteerDrone(BaseDrone):
             self._default_frame = frame
 
     def get_telemetry(self) -> DroneTelemetry:
-        self.telemetry.last_heartbeat = time.time()
         return self.telemetry
 
     def get_camera_frame(self) -> Optional[np.ndarray]:
@@ -145,7 +138,7 @@ class VolunteerDrone(BaseDrone):
             ret, frame = self._cap.read()
             if ret:
                 return frame
-        return self._default_frame.copy()
+        return None  # Missing video is not synthetic evidence.
 
     def get_guidance_command(self) -> Dict[str, Any]:
         """Gönüllü pilota gösterilecek hedef rota ve tavsiye irtifa paketi."""

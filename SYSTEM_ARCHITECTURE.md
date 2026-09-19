@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](docs/REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm — Sistem Mimarisi ve Tasarım Şartnamesi (System Architecture)
 **Platform:** Autonomous Wildfire Detection & Swarm Exploration Platform  
 **Sürüm:** 2.5.0-master  

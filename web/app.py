@@ -6,13 +6,15 @@ FastAPI tabanlı REST API, MJPEG video akışı ve gerçek zamanlı WebSocket te
 import os
 import asyncio
 import json
-from typing import List, Optional
+from typing import List, Optional, Literal, Annotated
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from core.swarm_manager import SwarmManager
 from core.geofence_manager import ZoneType
@@ -20,8 +22,14 @@ from hardware.simulated_drone import SimulatedDrone
 from hardware.mavlink_drone import MAVLinkDrone
 
 
+@asynccontextmanager
+async def lifespan(app):
+    swarm_mgr.start()
+    yield
+    swarm_mgr.stop()
+
 # FastAPI uygulaması
-app = FastAPI(
+app = FastAPI(lifespan=lifespan,
     title="PyreSwarm Mission Control",
     description="Profesyonel Yangın Tespit ve PSO Tabanlı Sürü Drone Yönetim Sistemi",
     version="2.0.0"
@@ -29,11 +37,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def guard_mutations(request: Request, call_next):
+    from fastapi.responses import JSONResponse
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        origin = request.headers.get("origin")
+        if origin and origin != str(request.base_url).rstrip("/"):
+            return JSONResponse(status_code=403, content={"detail": "Çapraz kaynaklı kontrol isteği reddedildi"})
+    return await call_next(request)
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"])
 
 # Dizin yolları
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -102,8 +121,6 @@ def initialize_default_swarm():
         (swarm_mgr.center_lat + 0.0035, swarm_mgr.center_lon + 0.0040, 0.95),  # Kuzeydoğu odağı
         (swarm_mgr.center_lat - 0.0030, swarm_mgr.center_lon - 0.0025, 0.88),  # Güneybatı odağı
     ]
-    for f_lat, f_lon, intensity in swarm_mgr.environmental_fires:
-        swarm_mgr.pso._update_fire_cluster(f_lat, f_lon, intensity)
 
     # 4 Arama Dronu
     offsets = [
@@ -121,7 +138,7 @@ def initialize_default_swarm():
             initial_alt=40.0,
             fire_targets=list(swarm_mgr.environmental_fires)
         )
-        drone.telemetry.is_in_air = True
+        drone.telemetry.is_in_air = drone.telemetry.alt > 0
         drone.telemetry.is_armed = True
         swarm_mgr.register_drone(drone)
 
@@ -140,84 +157,175 @@ def initialize_default_swarm():
     )
 
 initialize_default_swarm()
-swarm_mgr.start()
 
 
 # Pydantic Modelleri
-class GeofenceAddRequest(BaseModel):
+Latitude = Annotated[float, Field(ge=-85, le=85, allow_inf_nan=False)]
+Longitude = Annotated[float, Field(ge=-180, le=180, allow_inf_nan=False)]
+Altitude = Annotated[float, Field(ge=0, le=120, allow_inf_nan=False)]
+
+class APIModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+class Capabilities(APIModel):
+    max_speed_ms: float = Field(default=10, ge=1, le=14)
+    max_altitude_m: float = Field(default=120, ge=25, le=120)
+    camera_hfov_deg: float = Field(default=84, ge=20, le=120)
+    search_altitude_m: float = Field(default=60, ge=25, le=120)
+
+    @model_validator(mode="after")
+    def within_limits(self):
+        if self.search_altitude_m > self.max_altitude_m:
+            raise ValueError("Arama irtifası drone sınırını aşamaz")
+        return self
+
+class GeofenceAddRequest(APIModel):
     name: str
-    zone_type: str = "fire_extinguished" # fire_extinguished, water_body, no_fly_zone
-    coordinates: List[List[float]]       # [[lat, lon], ...]
-    min_alt: float = 0.0
-    max_alt: float = 500.0
+    zone_type: ZoneType = ZoneType.FIRE_EXTINGUISHED # fire_extinguished, water_body, no_fly_zone
+    coordinates: List[tuple[Latitude, Longitude]] = Field(min_length=3, max_length=200) #       # [[lat, lon], ...]
+    min_alt: float = Field(default=0, ge=0, le=500)
+    max_alt: float = Field(default=500, ge=0, le=500)
 
 
-class VolunteerRegisterRequest(BaseModel):
+class VolunteerRegisterRequest(APIModel):
+    capabilities: Capabilities = Field(default_factory=Capabilities)
     pilot_name: str
-    lat: float
-    lon: float
-    alt: float = 30.0
+    lat: Latitude
+    lon: Longitude
+    alt: Altitude = 30.0
     camera_url: Optional[str] = None
 
 
-class MAVLinkRegisterRequest(BaseModel):
-    drone_id: str
+class MAVLinkRegisterRequest(APIModel):
+    drone_id: str = Field(min_length=1, max_length=48, pattern=r"^[A-Za-z0-9_-]+$")
     connection_string: str = "udpin:0.0.0.0:14550"
     video_stream_url: Optional[str] = None
 
 
-class RelocateRequest(BaseModel):
-    lat: float
-    lon: float
+class RelocateRequest(APIModel):
+    lat: Latitude
+    lon: Longitude
     name: Optional[str] = "Ana Operasyon Üssü"
     regenerate_fires: bool = True
     save_permanent: bool = True
 
 
-class BaseStationUpdateRequest(BaseModel):
+class BaseStationUpdateRequest(APIModel):
     name: str = "Ana Operasyon Üssü"
-    lat: float
-    lon: float
+    lat: Latitude
+    lon: Longitude
     redeploy_drones: bool = True
     save_permanent: bool = True
     regenerate_fires: bool = True
 
 
-class AddDroneRequest(BaseModel):
-    drone_id: Optional[str] = None
-    drone_type: str = "simulated"        # simulated, mavlink, volunteer
+class AddDroneRequest(APIModel):
+    capabilities: Capabilities = Field(default_factory=Capabilities)
+    drone_id: Optional[str] = Field(default=None, max_length=48, pattern=r"^[A-Za-z0-9_-]+$")
+    drone_type: Literal["simulated", "mavlink", "volunteer"] = "simulated"        # simulated, mavlink, volunteer
     spawn_location: str = "base"         # base, map_center, custom
-    lat: Optional[float] = None
-    lon: Optional[float] = None
-    alt: float = 40.0
+    lat: Optional[Latitude] = None
+    lon: Optional[Longitude] = None
+    alt: Altitude = 40.0
     pilot_name: Optional[str] = None
     connection_string: Optional[str] = "udpin:0.0.0.0:14550"
     camera_url: Optional[str] = None
 
 
-class SpawnAtRequest(BaseModel):
-    lat: float
-    lon: float
+class SpawnAtRequest(APIModel):
+    lat: Latitude
+    lon: Longitude
     name: Optional[str] = None
 
 
-class WindRequest(BaseModel):
-    speed_ms: float
-    direction_deg: float
+class WindRequest(APIModel):
+    speed_ms: float = Field(ge=0, le=30)
+    direction_deg: float = Field(ge=0, le=360)
 
 
-class AOIRequest(BaseModel):
-    min_lat: float
-    max_lat: float
-    min_lon: float
-    max_lon: float
+class AOIRequest(APIModel):
+    min_lat: Latitude
+    max_lat: Latitude
+    min_lon: Longitude
+    max_lon: Longitude
+
+    @model_validator(mode="after")
+    def check_bounds(self):
+        if self.min_lat >= self.max_lat or self.min_lon >= self.max_lon:
+            raise ValueError("AOI köşeleri sıralı ve farklı olmalı")
+        if self.max_lat-self.min_lat > .2 or self.max_lon-self.min_lon > .2:
+            raise ValueError("Yerel operasyon alanı en fazla 0.2 derece olabilir")
+        return self
 
 
-class FireSpotRequest(BaseModel):
-    lat: float
-    lon: float
-    intensity: float = 0.95
+class FireSpotRequest(APIModel):
+    lat: Latitude
+    lon: Longitude
+    intensity: float = Field(default=.95, ge=0, le=1)
 
+
+class MissionKindRequest(APIModel):
+    kind: Literal["fire", "sar"]
+
+class IncidentStatusRequest(APIModel):
+    status: Literal["confirmed", "dismissed", "resolved"]
+
+class VolunteerTelemetryRequest(APIModel):
+    captured_at: float = Field(gt=0, description="UTC Unix seconds at actual drone measurement")
+    lat: Latitude
+    lon: Longitude
+    alt: Altitude
+    battery: float = Field(ge=0, le=100)
+
+@app.exception_handler(ValueError)
+async def invalid_operation(request, exc):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+@app.post("/api/mission/kind")
+async def set_mission_kind(req: MissionKindRequest):
+    swarm_mgr.set_mission_kind(req.kind)
+    return {"status": "success", "kind": req.kind}
+
+@app.post("/api/mission/scenario/target")
+async def scenario_target(req: FireSpotRequest):
+    swarm_mgr.add_scenario_target(req.lat, req.lon, req.intensity)
+    return {"status": "success", "source": "hidden_simulation_truth"}
+
+@app.post("/api/incidents/report")
+async def report_candidate(req: FireSpotRequest):
+    return swarm_mgr.record_candidate(req.lat, req.lon, req.intensity)
+
+@app.post("/api/incidents/{incident_id}/status")
+async def incident_status(incident_id: str, req: IncidentStatusRequest):
+    try:
+        return swarm_mgr.update_incident(incident_id, req.status)
+    except KeyError:
+        raise HTTPException(404, "Olay bulunamadı")
+
+@app.post("/api/volunteer/{drone_id}/telemetry")
+async def volunteer_telemetry(drone_id: str, req: VolunteerTelemetryRequest):
+    from hardware.volunteer_bridge import VolunteerDrone
+    with swarm_mgr._lock:
+        drone = swarm_mgr.drones.get(drone_id)
+        if not isinstance(drone, VolunteerDrone):
+            raise HTTPException(404, "Gönüllü bulunamadı")
+        drone.update_from_external(req.lat, req.lon, req.alt, req.battery, req.captured_at)
+    return {"status": "success"}
+
+@app.get("/api/volunteer/{drone_id}/guidance")
+async def volunteer_guidance(drone_id: str):
+    from hardware.volunteer_bridge import VolunteerDrone
+    import time
+    with swarm_mgr._lock:
+        drone = swarm_mgr.drones.get(drone_id)
+        if not isinstance(drone, VolunteerDrone):
+            raise HTTPException(404, "Gönüllü bulunamadı")
+        fresh = time.time()-drone.telemetry.last_heartbeat <= 3
+        eligible = fresh and drone.telemetry.battery_percentage > 20 and drone.telemetry.alt > 1 and drone_id in swarm_mgr.pso.waypoints
+        guidance = drone.get_guidance_command() if eligible and swarm_mgr.is_mission_active else None
+        return {"advisory_only": True, "telemetry_fresh": fresh, "guidance": guidance,
+                "waypoint": swarm_mgr.pso.waypoints.get(drone_id) if guidance else None}
 
 # REST API Uç Noktaları
 @app.get("/", response_class=HTMLResponse)
@@ -253,7 +361,7 @@ async def add_geofence(req: GeofenceAddRequest):
     try:
         z_type = ZoneType(req.zone_type)
     except ValueError:
-        z_type = ZoneType.FIRE_EXTINGUISHED
+        raise HTTPException(422, "Geçersiz alan türü")
 
     coords = [(c[0], c[1]) for c in req.coordinates]
     zone = swarm_mgr.close_zone(
@@ -283,7 +391,8 @@ async def register_volunteer(req: VolunteerRegisterRequest):
         alt=req.alt,
         camera_url=req.camera_url
     )
-    return {"status": "success", "drone_id": v.drone_id, "pilot_name": v.pilot_name}
+    v.capabilities.update(req.capabilities.model_dump())
+    return {"status": "success", "drone_id": v.drone_id, "pilot_name": v.pilot_name, "advisory_only": True}
 
 
 @app.get("/api/mission/base")
@@ -300,12 +409,16 @@ async def get_base_station():
 
 @app.post("/api/mission/base")
 async def update_base_station(req: BaseStationUpdateRequest):
-    swarm_mgr.relocate_swarm(
-        new_lat=req.lat,
-        new_lon=req.lon,
-        base_name=req.name,
-        regenerate_fires=req.regenerate_fires
-    )
+    if not req.redeploy_drones:
+        with swarm_mgr._lock:
+            swarm_mgr.center_lat, swarm_mgr.center_lon, swarm_mgr.base_name = req.lat, req.lon, req.name
+    else:
+        swarm_mgr.relocate_swarm(
+            new_lat=req.lat,
+            new_lon=req.lon,
+            base_name=req.name,
+            regenerate_fires=req.regenerate_fires
+        )
     if req.save_permanent:
         cfg = load_mission_config()
         cfg["base_station"] = {
@@ -370,7 +483,7 @@ async def add_drone_api(req: AddDroneRequest):
             connection_string=req.connection_string or "udpin:0.0.0.0:14550",
             video_stream_url=req.camera_url
         )
-        success = swarm_mgr.register_drone(drone)
+        success = await asyncio.to_thread(swarm_mgr.register_drone, drone)
         if not success:
             raise HTTPException(status_code=500, detail="MAVLink otopilotuna bağlanılamadı")
     elif d_type == "volunteer":
@@ -390,10 +503,12 @@ async def add_drone_api(req: AddDroneRequest):
             initial_alt=req.alt,
             fire_targets=list(swarm_mgr.environmental_fires)
         )
-        drone.telemetry.is_in_air = True
+        drone.telemetry.is_in_air = drone.telemetry.alt > 0
         drone.telemetry.is_armed = True
+        drone.capabilities.update(req.capabilities.model_dump())
         swarm_mgr.register_drone(drone)
 
+    swarm_mgr.drones[drone_id].capabilities.update(req.capabilities.model_dump())
     return {
         "status": "success",
         "drone_id": drone_id,
@@ -472,7 +587,7 @@ async def quick_fire_api():
     d_lon = (random.random() - 0.5) * 0.007
     f_lat = swarm_mgr.center_lat + d_lat
     f_lon = swarm_mgr.center_lon + d_lon
-    swarm_mgr.add_manual_fire_spot(f_lat, f_lon, intensity=0.96)
+    swarm_mgr.add_scenario_target(f_lat, f_lon, confidence=0.96)
     return {"status": "success", "lat": f_lat, "lon": f_lon, "message": "Hızlı yangın ihbarı oluşturuldu"}
 
 
@@ -506,7 +621,7 @@ async def register_mavlink(req: MAVLinkRegisterRequest):
         connection_string=req.connection_string,
         video_stream_url=req.video_stream_url
     )
-    success = swarm_mgr.register_drone(drone)
+    success = await asyncio.to_thread(swarm_mgr.register_drone, drone)
     if not success:
         raise HTTPException(status_code=500, detail="MAVLink drone bağlanamadı")
     return {"status": "success", "drone_id": drone.drone_id}
@@ -525,6 +640,8 @@ def gen_frames(drone_id: str):
 
 @app.get("/api/video_feed/{drone_id}")
 async def video_feed(drone_id: str):
+    if drone_id not in swarm_mgr.drones:
+        raise HTTPException(404, "Drone bulunamadı")
     return StreamingResponse(
         gen_frames(drone_id),
         media_type="multipart/x-mixed-replace; boundary=frame"

@@ -63,6 +63,8 @@ class BaseDrone(ABC):
     def __init__(self, drone_id: str, drone_type: DroneType):
         self.drone_id = drone_id
         self.drone_type = drone_type
+        self.capabilities = {"max_speed_ms": 10.0, "max_altitude_m": 120.0,
+                             "camera_hfov_deg": 84.0, "search_altitude_m": 60.0}
         self.mode = DroneMode.IDLE
         self.telemetry = DroneTelemetry(
             drone_id=drone_id,

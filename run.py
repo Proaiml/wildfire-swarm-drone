@@ -22,10 +22,10 @@ def main():
     ========================================================================
      [***] PYRESWARM: OTONOM SURU DRONE YANGIN TESPIT VE KOORDINASYONU [***]
     ========================================================================
-     [+] Cekirdek: 3D-PSO (Particle Swarm Optimization) ve APF Carpisma Onleme
+     [+] Cekirdek: Kapasite bazli tarama ve kanit odakli PSO
      [+] Yapay Zeka: YOLOv8 (best.pt - Yangin ve Duman Tespiti)
-     [+] Donanim Destegi: Pixhawk, PX4, ArduPilot MAVLink ve Simulator
-     [+] Ozel Yetenek: Dinamik Gonullu/Vatandas Drone Katilimi ve Bolge Kapatma
+     [+] Calisma: Simulator, gonullu rehberligi, MAVLink telemetri
+     [+] Fiziksel otonom ucus dogrulanmadi; bu surum fiziksel ucus yonetmez
     ========================================================================
      [>>] Gorev Kontrol Istasyonu (GCS) Web Arayuzu Baslatiliyor:
           URL: http://localhost:8000
@@ -38,7 +38,7 @@ def main():
     # Web sunucusunu başlat
     uvicorn.run(
         "web.app:app",
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8000,
         log_level="info"
     )

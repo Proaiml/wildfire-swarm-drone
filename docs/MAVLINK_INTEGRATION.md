@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm - MAVLink ve PX4 / ArduPilot Entegrasyonu (MAVLink Integration)
 
 ## 1. Protokol Mimarisi

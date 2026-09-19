@@ -1,3 +1,5 @@
+> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+
 # PyreSwarm - Kullanım Kılavuzu (User Guide)
 
 Bu kılavuz, **PyreSwarm Otonom Yangın Tespit ve PSO Tabanlı Sürü Drone Koordinasyon Sistemi**'nin sahada ve simülasyonda nasıl kullanılacağını adım adım açıklamaktadır.

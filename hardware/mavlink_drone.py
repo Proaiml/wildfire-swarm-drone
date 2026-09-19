@@ -55,7 +55,9 @@ class MAVLinkDrone(BaseDrone):
         try:
             print(f"[{self.drone_id}] MAVLink bağlantısı kuruluyor: {self.connection_string}...")
             self.master = mavutil.mavlink_connection(self.connection_string)
-            self.master.wait_heartbeat(timeout=5)
+            if self.master.wait_heartbeat(timeout=5) is None:
+                self.disconnect()
+                return False
             print(f"[{self.drone_id}] MAVLink Heartbeat alındı! Hedef Sistem: {self.master.target_system}")
 
             self._running = True
@@ -102,9 +104,9 @@ class MAVLinkDrone(BaseDrone):
                     self.telemetry.lat = msg.lat / 1e7
                     self.telemetry.lon = msg.lon / 1e7
                     self.telemetry.alt = max(0.0, msg.relative_alt / 1000.0)
-                    self.telemetry.vx = msg.vx / 100.0
-                    self.telemetry.vy = msg.vy / 100.0
-                    self.telemetry.vz = msg.vz / 100.0
+                    self.telemetry.vx = msg.vy / 100.0
+                    self.telemetry.vy = msg.vx / 100.0
+                    self.telemetry.vz = -msg.vz / 100.0
                     self.telemetry.speed = math.hypot(self.telemetry.vx, self.telemetry.vy)
                     self.telemetry.heading = msg.hdg / 100.0
                     self.telemetry.is_in_air = self.telemetry.alt > 1.0
@@ -146,7 +148,9 @@ class MAVLinkDrone(BaseDrone):
     def land(self) -> bool:
         if not self.master:
             return False
-        self.master.set_mode_rtl()
+        self.master.mav.command_long_send(
+            self.master.target_system, self.master.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, 0, 0)
         self.mode = DroneMode.LANDING
         self.telemetry.mode = self.mode
         return True
@@ -167,7 +171,7 @@ class MAVLinkDrone(BaseDrone):
         if not self.master:
             return False
 
-        type_mask = int(0b0000111111000111)  # Sadece vx, vy, vz ve yaw_rate aktif
+        type_mask = 0b010111000111  # Sadece vx, vy, vz ve yaw_rate aktif
 
         self.master.mav.set_position_target_local_ned_send(
             0,                                     # time_boot_ms

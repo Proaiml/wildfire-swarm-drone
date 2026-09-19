@@ -1,6 +1,6 @@
 """
 PyreSwarm - Yüksek Doğruluklu Simüle Drone (High-Fidelity Simulated Drone)
-6-DOF kinematik, batarya tükenimi ve sentetik orman/yangın kamera akışı simülatörü.
+Basitleştirilmiş nokta-kütle kinematiği, batarya tükenimi ve sentetik orman/yangın kamera akışı simülatörü.
 """
 
 import os
@@ -27,7 +27,7 @@ class SimulatedDrone(BaseDrone):
         initial_lat: float,
         initial_lon: float,
         initial_alt: float = 0.0,
-        battery_drain_rate_per_sec: float = 0.02, # ~80 dakikalık uçuş süresi
+        battery_drain_rate_per_sec: float = 0.06, # Basit ~28 dakika hover varsayımı; üretici ölçümü değil
         fire_targets: Optional[List[Tuple[float, float, float]]] = None # [(lat, lon, intensity), ...]
     ):
         super().__init__(drone_id=drone_id, drone_type=DroneType.SIMULATED)
@@ -48,6 +48,10 @@ class SimulatedDrone(BaseDrone):
         self.cmd_vx = 0.0
         self.cmd_vy = 0.0
         self.cmd_vz = 0.0
+        self.target_takeoff_alt = None
+        self.geofence_mgr = None
+        self.aoi_bounds = None
+        self.safety_hold = False
 
         # Gerçekçi test resimlerini yükle
         self.fire_images = self._load_sample_images()
@@ -103,8 +107,8 @@ class SimulatedDrone(BaseDrone):
     def takeoff(self, target_alt: float = 30.0) -> bool:
         self.telemetry.is_armed = True
         self.telemetry.is_in_air = True
-        self.telemetry.alt = target_alt
-        self.mode = DroneMode.MISSION_PSO
+        self.target_takeoff_alt = target_alt
+        self.mode = DroneMode.TAKEOFF
         self.telemetry.mode = self.mode
         return True
 
@@ -137,8 +141,8 @@ class SimulatedDrone(BaseDrone):
 
         dist = math.hypot(dx_m, dy_m)
         if dist > 1.0:
-            self.cmd_vx = (dx_m / dist) * speed
-            self.cmd_vy = (dy_m / dist) * speed
+            self.cmd_vx = (dx_m / dist) * min(speed, dist*.5)
+            self.cmd_vy = (dy_m / dist) * min(speed, dist*.5)
         else:
             self.cmd_vx = 0.0
             self.cmd_vy = 0.0
@@ -162,27 +166,52 @@ class SimulatedDrone(BaseDrone):
             if math.hypot(dx, dy) < 5.0:
                 self.land()
 
-        # Yumuşak ivmelenme (Atalet filtresi)
-        alpha = 0.6
-        self.telemetry.vx = alpha * self.cmd_vx + (1 - alpha) * self.telemetry.vx
-        self.telemetry.vy = alpha * self.cmd_vy + (1 - alpha) * self.telemetry.vy
-        self.telemetry.vz = alpha * self.cmd_vz + (1 - alpha) * self.telemetry.vz
-
-        # İrtifa güncelleme
-        self.telemetry.alt = max(0.0, self.telemetry.alt + self.telemetry.vz * actual_dt)
-        if self.telemetry.alt <= 0.5 and self.mode == DroneMode.LANDING:
+        if not self.telemetry.is_in_air:
+            self.cmd_vx = self.cmd_vy = self.cmd_vz = 0.0
+            self.telemetry.vx = self.telemetry.vy = self.telemetry.vz = 0.0
+            self.telemetry.speed = 0.0
+            self.telemetry.last_heartbeat = now
+            return
+        if self.mode == DroneMode.TAKEOFF:
+            self.cmd_vx = self.cmd_vy = 0.0
+            self.cmd_vz = min(2.0, max(0.0, self.target_takeoff_alt-self.telemetry.alt))
+            if abs(self.target_takeoff_alt-self.telemetry.alt) < .5:
+                self.mode = DroneMode.MISSION_PSO
+                self.telemetry.mode = self.mode
+        actual_dt = min(actual_dt, .5)
+        dvx, dvy = self.cmd_vx-self.telemetry.vx, self.cmd_vy-self.telemetry.vy
+        change = math.hypot(dvx, dvy)
+        factor = min(1.0, 2.5*actual_dt/max(change, .0001))
+        self.telemetry.vx += dvx*factor
+        self.telemetry.vy += dvy*factor
+        self.telemetry.vz += max(-2*actual_dt, min(2*actual_dt, self.cmd_vz-self.telemetry.vz))
+        self.telemetry.alt = max(0.0, self.telemetry.alt+self.telemetry.vz*actual_dt)
+        if self.telemetry.alt <= .1 and self.mode == DroneMode.LANDING:
             self.telemetry.alt = 0.0
             self.telemetry.is_in_air = False
             self.telemetry.is_armed = False
             self.mode = DroneMode.IDLE
             self.telemetry.mode = self.mode
-
-        # GPS güncelleme
-        cos_lat = math.cos(math.radians(self.telemetry.lat))
-        m_per_deg_lon = self.METERS_PER_DEGREE * cos_lat
-
-        self.telemetry.lon += (self.telemetry.vx * actual_dt) / m_per_deg_lon
-        self.telemetry.lat += (self.telemetry.vy * actual_dt) / self.METERS_PER_DEGREE
+            self.telemetry.vx = self.telemetry.vy = self.telemetry.vz = 0.0
+            self.cmd_vx = self.cmd_vy = self.cmd_vz = 0.0
+        m_per_deg_lon = self.METERS_PER_DEGREE * math.cos(math.radians(self.telemetry.lat))
+        new_lon = self.telemetry.lon+self.telemetry.vx*actual_dt/m_per_deg_lon
+        new_lat = self.telemetry.lat+self.telemetry.vy*actual_dt/self.METERS_PER_DEGREE
+        safe = not self.geofence_mgr or self.geofence_mgr.path_is_clear(
+            self.telemetry.lat, self.telemetry.lon, new_lat, new_lon, self.telemetry.alt)
+        if self.aoi_bounds and self.mode == DroneMode.MISSION_PSO:
+            b = self.aoi_bounds
+            safe = safe and b['min_lat'] <= new_lat <= b['max_lat'] and b['min_lon'] <= new_lon <= b['max_lon']
+        if not safe:
+            self.safety_hold = True
+        elif math.hypot(self.cmd_vx, self.cmd_vy) > .1:
+            self.safety_hold = False
+        if safe:
+            self.telemetry.lat, self.telemetry.lon = new_lat, new_lon
+        else:
+            # Simulation containment, NOT a physical emergency-braking guarantee.
+            self.telemetry.vx = self.telemetry.vy = 0.0
+            self.cmd_vx = self.cmd_vy = 0.0
 
         # Yer hızı ve heading
         self.telemetry.speed = math.hypot(self.telemetry.vx, self.telemetry.vy)
@@ -192,7 +221,7 @@ class SimulatedDrone(BaseDrone):
         # Batarya tükenimi ve saha emniyet denetimi (Fail-Safe)
         if self.telemetry.is_in_air:
             self.telemetry.battery_percentage = max(
-                0.0, self.telemetry.battery_percentage - (self.battery_drain_rate * actual_dt)
+                0.0, self.telemetry.battery_percentage - (self.battery_drain_rate * actual_dt * (1 + .025*self.telemetry.speed + .1*max(0,self.telemetry.vz)))
             )
             if self.telemetry.battery_percentage <= 20.0:
                 self.telemetry.is_low_battery = True
@@ -200,7 +229,11 @@ class SimulatedDrone(BaseDrone):
                 self.telemetry.is_low_battery = False
 
             # Sahada batarya %15 altına düşerse acil otonom RTL tetikle
-            if self.telemetry.battery_percentage <= 15.0 and self.mode == DroneMode.MISSION_PSO:
+            distance_home = math.hypot((self.home_lat-self.telemetry.lat)*self.METERS_PER_DEGREE,
+                                       (self.home_lon-self.telemetry.lon)*m_per_deg_lon)
+            return_seconds = distance_home/max(1,min(10,self.capabilities['max_speed_ms'])) + self.telemetry.alt/2 + 20
+            reserve = max(15.0, 10.0 + return_seconds*self.battery_drain_rate*1.5)
+            if self.telemetry.battery_percentage <= reserve and self.mode in (DroneMode.MISSION_PSO, DroneMode.TAKEOFF, DroneMode.ARMED):
                 self.return_to_launch()
 
         self.telemetry.last_heartbeat = now
@@ -219,22 +252,24 @@ class SimulatedDrone(BaseDrone):
         # En yakın yangın odağını bul
         closest_dist = 999999.0
         closest_intensity = 0.0
+        closest_index = 0
 
-        for f_lat, f_lon, intensity in self.fire_targets:
+        for target_index, (f_lat, f_lon, intensity) in enumerate(self.fire_targets):
             dx = (self.telemetry.lon - f_lon) * m_per_deg_lon
             dy = (self.telemetry.lat - f_lat) * self.METERS_PER_DEGREE
             dist = math.hypot(dx, dy)
             if dist < closest_dist:
                 closest_dist = dist
                 closest_intensity = intensity
+                closest_index = target_index
 
         # Görüş Alanı (FOV) yarıçapı irtifaya bağlıdır: R = Alt * tan(FOV/2)
-        fov_radius = max(20.0, self.telemetry.alt * 0.9)
+        fov_radius = self.telemetry.alt * math.tan(math.radians(self.capabilities["camera_hfov_deg"] / 2))
 
         if closest_dist < fov_radius and len(self.fire_images) > 0:
             # Yangın görüş alanında!
             # Resimlerden birini seç ve mesafeye göre harmanla
-            img_idx = int(hash(self.drone_id)) % len(self.fire_images)
+            img_idx = closest_index % len(self.fire_images)
             fire_img = self.fire_images[img_idx].copy()
 
             # 640x480 boyutuna getir

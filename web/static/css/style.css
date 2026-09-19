@@ -1,776 +1,726 @@
-/* PyreSwarm - Next-Gen Autonomous Wildfire Mission Control CSS */
-
 :root {
-    --bg-dark: #090c10;
-    --bg-panel: rgba(18, 24, 34, 0.85);
-    --border-glass: rgba(255, 255, 255, 0.08);
-    --border-highlight: rgba(255, 120, 0, 0.35);
-    
-    --color-fire: #ff5500;
-    --color-fire-glow: #ff7700;
-    --color-hud: #00e5ff;
-    --color-accent: #00ff88;
-    --color-warning: #ffb700;
-    --color-danger: #ff3344;
-    --color-lake: #0088ff;
-    
-    --text-main: #f0f4f8;
-    --text-dim: #8b9bb4;
-    --text-muted: #53647c;
-    
-    --font-ui: 'Inter', -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+  color-scheme: dark;
+  --bg: #0b1117;
+  --panel: #121b24;
+  --border: #273541;
+  --text: #e8eff5;
+  --muted: #97abbc;
+  --cyan: #61d6cb;
+  --amber: #efb66a;
+  --red: #f28d88;
 }
-
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
-
-body.gcs-body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    font-family: var(--font-ui);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    13px/1.5 "Segoe UI",
+    Arial,
+    sans-serif;
 }
-
-/* Üst Telemetri Barı */
-.top-bar {
-    height: 64px;
-    background: var(--bg-panel);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border-glass);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    z-index: 1000;
+button,
+input,
+select {
+  font: inherit;
 }
-
-.brand-group {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+button,
+select {
+  cursor: pointer;
 }
-
-.logo-icon {
-    width: 38px;
-    height: 38px;
-    background: linear-gradient(135deg, #ff4500, #ff8c00);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: #fff;
-    box-shadow: 0 0 16px rgba(255, 69, 0, 0.4);
+button {
+  background: #1b2935;
+  color: var(--text);
+  border: 1px solid #354553;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: background 0.15s;
 }
-
-.brand-title {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
+button:hover {
+  background: #304451;
 }
-
-.brand-title span {
-    font-size: 11px;
-    background: rgba(255, 85, 0, 0.15);
-    color: var(--color-fire);
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 85, 0, 0.4);
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
-
-.brand-subtitle {
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
+.primary {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #0c302e;
+  font-weight: 650;
 }
-
-.status-widgets {
-    display: flex;
-    gap: 16px;
+.primary:hover {
+  background: #8aebe2;
 }
-
-.stat-pill {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-glass);
-    border-radius: 6px;
-    padding: 4px 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.danger {
+  color: var(--red);
 }
-
-.stat-pill .label {
-    font-size: 9px;
-    color: var(--text-dim);
-    font-weight: 600;
-    letter-spacing: 0.8px;
+a {
+  color: var(--muted);
+  text-decoration: none;
 }
-
-.stat-pill .value {
-    font-size: 16px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--text-main);
+a:hover {
+  color: var(--cyan);
 }
-
-.stat-pill.highlight-gold .value { color: var(--color-warning); }
-.stat-pill.highlight-red .value { color: var(--color-fire); }
-
-.action-buttons {
-    display: flex;
-    gap: 10px;
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
 }
-
-/* Buton Stilleri */
-.btn {
-    border: none;
-    border-radius: 6px;
-    padding: 8px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
-
-.btn-primary {
-    background: linear-gradient(135deg, #00b0ff, #0081cb);
-    color: #fff;
-    box-shadow: 0 0 12px rgba(0, 176, 255, 0.35);
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-weight: 750;
+  letter-spacing: 1.7px;
+  font-size: 18px;
 }
-.btn-primary:hover {
-    background: linear-gradient(135deg, #29b6f6, #0288d1);
-    transform: translateY(-1px);
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.8px;
 }
-
-.btn-warning {
-    background: rgba(255, 183, 0, 0.15);
-    border: 1px solid var(--color-warning);
-    color: var(--color-warning);
+.brand-icon {
+  font-size: 34px;
+  color: var(--cyan);
 }
-.btn-warning:hover { background: rgba(255, 183, 0, 0.3); }
-
-.btn-danger {
-    background: rgba(255, 51, 68, 0.15);
-    border: 1px solid var(--color-danger);
-    color: var(--color-danger);
+.environment {
+  font-size: 10px;
+  letter-spacing: 1px;
+  background: #26332e;
+  color: #bad1bc;
+  border: 1px solid #405045;
+  border-radius: 4px;
+  padding: 5px 9px;
 }
-.btn-danger:hover { background: rgba(255, 51, 68, 0.3); }
-
-.btn-outline {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-glass);
-    color: var(--text-main);
+.connection {
+  margin-left: auto;
+  color: var(--cyan);
+  font-size: 12px;
 }
-.btn-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+.connection.offline {
+  color: var(--red);
 }
-
-/* Ana Bölüm Grid Düzeni */
-.gcs-main {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 340px 1fr 380px;
-    gap: 8px;
-    padding: 8px;
-    height: calc(100vh - 64px);
-    overflow: hidden;
+.missionbar {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 20px 24px;
+  flex-wrap: wrap;
 }
-
-.side-panel {
-    background: var(--bg-panel);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border-glass);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+.eyebrow {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin: 0 0 5px;
 }
-
-.panel-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-glass);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+#mission-kind {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 650;
+  padding: 0 25px 0 0;
 }
-
-.panel-header h2 {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+option {
+  background: var(--panel);
 }
-
+.mission-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.mission-info small {
+  color: var(--muted);
+  max-width: 270px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-    background: rgba(0, 255, 136, 0.12);
-    color: var(--color-accent);
-    border: 1px solid rgba(0, 255, 136, 0.3);
+  background: #263846;
+  color: #b3d2e4;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 10px;
+  letter-spacing: 0.6px;
 }
-
-/* Harita Alanı */
-.map-section {
-    position: relative;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid var(--border-glass);
+#mission-time {
+  font-family: Consolas, monospace;
+  font-size: 15px;
 }
-
-.map-viewport {
-    width: 100%;
-    height: 100%;
-    background: #111;
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-
-/* Leaflet Katman Kontrolü Koyu Tema */
-.leaflet-control-layers {
-    background: rgba(18, 24, 34, 0.9) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--border-glass) !important;
-    color: var(--text-main) !important;
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-family: var(--font-ui) !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+main {
+  display: grid;
+  grid-template-columns: 270px minmax(350px, 1fr) 290px;
+  gap: 12px;
+  padding: 0 20px;
+  height: calc(100vh - 224px);
+  min-height: 550px;
 }
-.leaflet-control-layers-expanded {
-    padding: 8px 12px !important;
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 0;
 }
-.leaflet-control-layers label {
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    color: #e2e8f0;
+.fleet-panel,
+.evidence-panel {
+  display: flex;
+  flex-direction: column;
 }
-
-/* Harita Üstü Araçlar */
-.map-overlay-tools {
-    position: absolute;
-    top: 14px;
-    left: 60px;
-    z-index: 800;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.section-heading,
+.map-heading {
+  padding: 17px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
 }
-
-.tool-group {
-    display: flex;
-    gap: 8px;
-    background: rgba(14, 20, 28, 0.85);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 8px;
-    border: 1px solid var(--border-glass);
+h2 {
+  font-size: 15px;
+  margin: 0;
+  font-weight: 650;
 }
-
-.tool-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid var(--border-glass);
-    color: var(--text-main);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
+h3 {
+  font-size: 12px;
+  margin: 0;
 }
-
-.tool-btn:hover, .tool-btn.active {
-    background: var(--color-fire);
-    border-color: var(--color-fire);
-    color: #fff;
-    box-shadow: 0 0 10px rgba(255, 85, 0, 0.4);
+.small {
+  padding: 5px 9px;
+  font-size: 11px;
 }
-
-.tool-btn-danger {
-    background: rgba(255, 51, 68, 0.2);
-    border-color: var(--color-danger);
-    color: var(--color-danger);
+#fleet-count,
+#incident-count,
+#zone-count {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 5px;
 }
-
-.draw-instruction {
-    background: rgba(0, 0, 0, 0.75);
-    color: #ffb700;
-    font-size: 11px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 183, 0, 0.4);
+.panel-note {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
 }
-
-/* Tablo */
-.table-container {
-    max-height: 240px;
-    overflow-y: auto;
+.fleet-list {
+  overflow: auto;
+  flex: 1;
 }
-
-.telemetry-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
+.drone-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
 }
-
-.telemetry-table th {
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text-dim);
-    text-align: left;
-    padding: 8px 10px;
-    font-weight: 600;
-    font-size: 10px;
-    border-bottom: 1px solid var(--border-glass);
+.drone-card.selected {
+  background: #182c35;
+  border-left-color: var(--cyan);
 }
-
-.telemetry-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    font-family: var(--font-mono);
+.drone-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
-
-.telemetry-table tr:hover {
-    background: rgba(255, 255, 255, 0.04);
+.drone-title button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 650;
 }
-
-/* Panel Bölümleri */
-.panel-section {
+.type-label {
+  font-size: 9px;
+  color: var(--muted);
+}
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0 6px;
+}
+.telemetry-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+}
+.telemetry-grid strong {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+.drone-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--muted);
+}
+.drone-bottom button {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.fleet-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.fleet-footer p {
+  color: var(--muted);
+  margin: 4px 0 0;
+  font-size: 10px;
+}
+.map-panel {
+  display: flex;
+  flex-direction: column;
+}
+.map-heading {
+  flex-shrink: 0;
+}
+.map-tools {
+  padding: 9px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.map-tools button {
+  font-size: 10px;
+  padding: 6px 7px;
+}
+.map-tools .active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+#map {
+  flex: 1;
+  min-height: 330px;
+  background: #152b30;
+  background-image:
+    linear-gradient(#ffffff06 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.map-legend label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+.cyan {
+  background: var(--cyan);
+}
+.amber {
+  background: var(--amber);
+}
+.red {
+  background: var(--red);
+}
+.camera {
+  margin: 14px 14px 0;
+  position: relative;
+  border: 1px solid var(--border);
+  background: #080e13;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.camera-heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px;
+  font-size: 8px;
+  color: var(--amber);
+  letter-spacing: 0.7px;
+}
+.camera img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: contain;
+}
+.camera #camera-status {
+  font:
+    10px Consolas,
+    monospace;
+  padding: 7px;
+  color: var(--muted);
+}
+.model-note {
+  font-size: 10px;
+  color: var(--amber);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.incident-heading {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+}
+.incident-list {
+  overflow: auto;
+  flex: 1;
+  min-height: 100px;
+}
+.empty {
+  padding: 20px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.empty b {
+  display: block;
+  color: #c5d4df;
+  margin-bottom: 4px;
+}
+.incident {
+  margin: 0 12px 10px;
+  padding: 10px;
+  border: 1px solid #665239;
+  border-radius: 6px;
+  background: #29271f;
+}
+.incident strong {
+  font-size: 12px;
+}
+.incident p {
+  margin: 4px 0;
+  color: #c1b6a4;
+  font-size: 10px;
+}
+.incident-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+.incident-actions button {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+.zones {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  max-height: 180px;
+  overflow: auto;
+  font-size: 11px;
+}
+.zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+}
+.zone-row button {
+  padding: 3px 7px;
+  font-size: 10px;
+}
+.statusbar {
+  padding: 13px 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.draw-help {
+  padding: 8px 10px;
+  background: #264441;
+  font-size: 11px;
+}
+.draw-help button {
+  font-size: 10px;
+  padding: 3px 6px;
+  margin-left: 7px;
+}
+[hidden] {
+  display: none !important;
+}
+dialog {
+  background: var(--panel);
+  border: 1px solid #4d6575;
+  color: var(--text);
+  border-radius: 12px;
+  width: min(530px, 94vw);
+  padding: 0;
+  max-height: 90vh;
+}
+dialog::backdrop {
+  background: #0009;
+  backdrop-filter: blur(3px);
+}
+dialog form {
+  padding: 20px;
+}
+dialog .section-heading {
+  padding: 0 0 14px;
+}
+.dialog-note {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 14px 0;
+}
+dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 12px 0;
+}
+input,
+select {
+  background: #0f1820;
+  border: 1px solid #3a4b58;
+  border-radius: 5px;
+  color: var(--text);
+  padding: 8px;
+  min-width: 0;
+}
+input[type="checkbox"] {
+  accent-color: var(--cyan);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+dialog .inline {
+  flex-direction: row;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+#toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #25423f;
+  color: #e8fff8;
+  border: 1px solid #578d85;
+  border-radius: 8px;
+  padding: 12px 20px;
+  z-index: 2000;
+  max-width: 90vw;
+  font-size: 12px;
+}
+#toast.error {
+  background: #542d30;
+  border-color: var(--red);
+}
+.drone-map-icon {
+  background: none;
+  border: 0;
+}
+.drone-glyph {
+  display: block;
+  width: 26px;
+  height: 26px;
+  color: #062723;
+  background: var(--cyan);
+  border: 2px solid #f2fffc;
+  border-radius: 50%;
+  font-size: 19px;
+  text-align: center;
+  line-height: 21px;
+  box-shadow: 0 2px 8px #0009;
+  transition: transform 0.2s linear;
+}
+.leaflet-tooltip {
+  background: #0b1723e8;
+  color: white;
+  border: 1px solid #516674;
+  box-shadow: none;
+  font:
+    10px "Segoe UI",
+    sans-serif;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #142531;
+  color: var(--text);
+}
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  font-size: 9px !important;
+}
+.leaflet-control-layers-toggle {
+  background-image: none !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+.leaflet-control-layers-toggle::after {
+  content: "▱";
+  font-size: 25px;
+  color: #222;
+  padding-left: 5px;
+}
+.leaflet-bar a {
+  background: #192d38 !important;
+  color: #fff !important;
+}
+.offline-map {
+  color: var(--amber);
+}
+@media (min-width: 1550px) {
+  main {
+    grid-template-columns: 300px minmax(500px, 1fr) 340px;
+  }
+  .camera img {
+    max-height: 230px;
+  }
+}
+@media (max-width: 1050px) {
+  .topbar {
+    gap: 14px;
     padding: 12px 16px;
-    border-top: 1px solid var(--border-glass);
-}
-
-.panel-section h3 {
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.scrollable-list {
-    flex: 1;
-    overflow-y: auto;
-}
-
-/* Liderlik Kartı */
-.leader-card {
-    background: rgba(255, 183, 0, 0.08);
-    border: 1px solid rgba(255, 183, 0, 0.3);
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.trophy-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: var(--color-warning);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-}
-
-.hunter-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.hunter-id {
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--color-warning);
-}
-
-.hunter-desc {
-    font-size: 11px;
-    color: var(--text-dim);
-}
-
-.pso-info-box {
+  }
+  .missionbar {
+    padding: 14px 16px;
+    gap: 14px;
+  }
+  main {
+    grid-template-columns: 230px minmax(310px, 1fr);
+    height: auto;
+    min-height: 0;
+  }
+  .map-panel,
+  .fleet-panel {
+    height: 600px;
+  }
+  .evidence-panel {
+    grid-column: 1/-1;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    font-size: 11px;
-}
-
-.pso-item {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-glass);
-    padding: 6px 8px;
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-}
-
-.pso-item span { color: var(--text-dim); font-size: 10px; }
-.pso-item strong { color: var(--color-hud); font-family: var(--font-mono); margin-top: 2px; }
-
-/* Video & HUD Konteyner */
-.video-container {
-    position: relative;
-    width: 100%;
-    height: 240px;
-    background: #000;
-    overflow: hidden;
-    border-bottom: 1px solid var(--border-glass);
-}
-
-.video-feed-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.video-hud-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 10px;
-}
-
-.hud-item-top {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    font-family: var(--font-mono);
-}
-
-.hud-live-tag {
-    background: rgba(255, 51, 68, 0.85);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.hud-reticle {
-    align-self: center;
-    width: 40px;
-    height: 40px;
-    border: 1px dashed rgba(0, 229, 255, 0.5);
-    border-radius: 50%;
-}
-
-.hud-item-bottom {
-    background: rgba(0, 0, 0, 0.6);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-family: var(--font-mono);
-    color: var(--color-hud);
-}
-
-/* Yangın ve Bölge Kartları */
-.cluster-item, .zone-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-glass);
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 11px;
-}
-
-.cluster-item { border-left: 3px solid var(--color-fire); }
-.zone-item { border-left: 3px solid var(--color-lake); }
-
-.cluster-info, .zone-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.cluster-title, .zone-title { font-weight: 600; color: var(--text-main); }
-.cluster-sub, .zone-sub { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
-
-.empty-state {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-style: italic;
-    padding: 8px 0;
-}
-
-/* Modal */
-.modal {
+    min-height: 300px;
+  }
+  .evidence-panel > .section-heading {
+    grid-column: 1/-1;
+  }
+  .camera {
+    grid-row: 2/5;
+  }
+  .model-note {
+    grid-column: 1;
+  }
+  .incident-heading,
+  .incident-list,
+  .zones {
+    grid-column: 2;
+  }
+  .mission-info small {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
-    z-index: 2000;
-    align-items: center;
-    justify-content: center;
+  }
+  .topbar > a:last-child {
+    display: none;
+  }
+  .environment {
+    font-size: 9px;
+  }
+  .statusbar {
+    flex-wrap: wrap;
+  }
 }
-
-.modal.active { display: flex; }
-
-.modal-content {
-    background: #151c28;
-    border: 1px solid var(--border-highlight);
-    border-radius: 12px;
-    width: 440px;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
-    overflow: hidden;
-}
-
-.modal-header {
-    padding: 14px 18px;
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid var(--border-glass);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.modal-header h3 {
-    font-size: 13px;
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 20px;
-    cursor: pointer;
-}
-
-.modal-body {
-    padding: 16px 18px;
-}
-
-.modal-desc {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 14px;
-    line-height: 1.4;
-}
-
-.form-group {
-    margin-bottom: 12px;
-}
-
-.form-group label {
-    display: block;
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-}
-
-.form-group input, .dropdown {
-    width: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border-glass);
-    color: var(--text-main);
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-}
-
-.form-group input:focus, .dropdown:focus {
-    outline: none;
-    border-color: var(--color-hud);
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.modal-footer {
-    padding: 12px 18px;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid var(--border-glass);
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-/* Sağ Tık Bağlam Menüsü (Context Menu) */
-.context-menu {
-    position: absolute;
-    z-index: 1500;
-    background: #141c28;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
-    padding: 6px 0;
-    min-width: 220px;
-    font-size: 12px;
-}
-.context-item {
-    padding: 8px 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text-main);
-    transition: background 0.15s;
-}
-.context-item:hover {
-    background: rgba(255, 85, 0, 0.25);
-    color: #fff;
-}
-.context-divider {
-    height: 1px;
-    background: var(--border-glass);
-    margin: 4px 0;
-}
-
-/* Ana Operasyon Üssü Marker ve Radar Nabzı */
-.base-marker-container {
-    position: relative;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.base-shelter-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #ffb300, #ff6f00);
-    border: 2px solid #fff;
-    border-radius: 50%;
-    color: #000;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 15px rgba(255, 179, 0, 0.8);
-    z-index: 2;
-}
-.base-radar-pulse {
-    position: absolute;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 2px solid #ffb300;
-    animation: base-radar-anim 2s infinite ease-out;
-    z-index: 1;
-    pointer-events: none;
-}
-@keyframes base-radar-anim {
-    0% { transform: scale(0.6); opacity: 1; }
-    100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* Filo Tablosu Aksiyon Butonları */
-.btn-table-action {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-glass);
-    color: var(--text-dim);
-    padding: 2px 6px;
-    border-radius: 4px;
+@media (max-width: 620px) {
+  .environment {
+    display: none;
+  }
+  .connection {
     font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-.btn-table-action:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-}
-.btn-table-action.action-rtl:hover {
-    color: #ff9100;
-    border-color: #ff9100;
-}
-.btn-table-action.action-land:hover {
-    color: #00e5ff;
-    border-color: #00e5ff;
-}
-.btn-table-action.action-del:hover {
-    color: #ff3344;
-    border-color: #ff3344;
-}
-
-/* Batarya Kritik Yanıp Sönme */
-.battery-critical {
-    color: #ff3344 !important;
-    font-weight: 700;
-    animation: battery-blink 1s infinite alternate;
-}
-@keyframes battery-blink {
-    0% { opacity: 1; }
-    100% { opacity: 0.3; }
-}
-
-/* Toast Bildirim Kutuları */
-.toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
+  }
+  main {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
-}
-.toast-item {
-    pointer-events: auto;
-    min-width: 280px;
-    max-width: 400px;
-    background: #101824;
-    border: 1px solid var(--border-glass);
-    border-left: 4px solid var(--color-hud);
-    padding: 10px 14px;
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    color: #fff;
-    font-size: 12px;
+    padding: 0 10px;
+  }
+  .map-panel {
+    order: 0;
+    height: 510px;
+  }
+  .fleet-panel {
+    order: 1;
+    height: 420px;
+  }
+  .evidence-panel {
+    order: 2;
     display: flex;
-    align-items: center;
+    min-height: 550px;
+  }
+  .camera img {
+    max-height: 200px;
+  }
+  .mission-info {
+    min-width: 120px;
+  }
+  .controls button {
+    font-size: 11px;
+    padding: 7px 9px;
+  }
+  .missionbar {
     gap: 10px;
-    animation: toast-slide-in 0.3s ease-out;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  #mission-kind {
+    font-size: 21px;
+  }
+  .statusbar {
+    padding: 12px;
+  }
+  .form-grid {
+    gap: 0 10px;
+  }
 }
-.toast-item.toast-success {
-    border-left-color: #00e676;
-}
-.toast-item.toast-danger {
-    border-left-color: #ff3344;
-}
-.toast-item.toast-warning {
-    border-left-color: #ffb300;
-}
-@keyframes toast-slide-in {
-    from { transform: translateX(50px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

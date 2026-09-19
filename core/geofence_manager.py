@@ -8,8 +8,8 @@ from enum import Enum
 from typing import List, Dict, Tuple, Optional, Any
 import math
 import uuid
-from shapely.geometry import Point, Polygon, MultiPolygon
-from shapely.ops import nearest_points
+from shapely.geometry import Point, Polygon, MultiPolygon, LineString
+from shapely.ops import nearest_points, transform
 
 
 class ZoneType(str, Enum):
@@ -73,8 +73,25 @@ class GeofenceManager:
             max_alt=max_alt,
             safety_margin_meters=safety_margin_meters
         )
+        if not zone.polygon.is_valid or zone.polygon.area <= 0:
+            raise ValueError("Poligon kesişmemeli ve sıfırdan büyük alan içermeli.")
+        if not (0 <= min_alt <= max_alt) or not math.isfinite(max_alt):
+            raise ValueError("Geçersiz irtifa aralığı")
+        if any(not math.isfinite(v) for c in coordinates for v in c):
+            raise ValueError("Koordinatlar sonlu olmalı")
         self.zones[zid] = zone
         return zone
+
+    def path_is_clear(self, lat, lon, end_lat, end_lon, alt):
+        scale = self.METERS_PER_DEGREE * math.cos(math.radians(lat))
+        segment = LineString([(0, 0), ((end_lon-lon)*scale, (end_lat-lat)*self.METERS_PER_DEGREE)])
+        for zone in list(self.zones.values()):
+            if zone.zone_type == ZoneType.HIGH_RISK_SEARCH or not zone.min_alt <= alt <= zone.max_alt:
+                continue
+            poly = transform(lambda x,y,z=None: ((x-lon)*scale, (y-lat)*self.METERS_PER_DEGREE), zone.polygon)
+            if poly.buffer(zone.safety_margin_meters).intersects(segment):
+                return False
+        return True
 
     def remove_zone(self, zone_id: str) -> bool:
         """Kapatılmış alanı kaldırır."""
