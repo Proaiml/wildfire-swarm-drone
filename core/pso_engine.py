@@ -87,6 +87,8 @@ class PSOEngine:
         self.config = config or PSOConfig()
         self.geofence_mgr = geofence_mgr or GeofenceManager()
         self.particles: Dict[str, SwarmParticleState] = {}
+        # Benchmark-only waypoint hook. None preserves deployed constrained PSO.
+        self.external_waypoints = None
 
         # Küresel En İyi (Global Best - gbest)
         self.gbest_lat: float = 0.0
@@ -215,7 +217,10 @@ class PSOEngine:
 
             if dist_m < 50.0:
                 if cluster.get("status") in ("confirmed", "dismissed", "resolved"):
-                    return cluster
+                    # Resolved/dismissed observations must not hide future spot fires forever.
+                    if cluster.get("status") == "confirmed" or self.elapsed_seconds-cluster.get("status_changed_s", self.elapsed_seconds) < 60:
+                        return cluster
+                    continue
                 cluster["confidence"] = max(cluster["confidence"], fitness)
                 cluster["detections_count"] += 1
                 return cluster
@@ -310,9 +315,12 @@ class PSOEngine:
             inspect = p.drone_id in inspectors
             if inspect:
                 target = evidence_target
+            if self.external_waypoints is not None:
+                inspect = False
+                target = self.external_waypoints.get(p.drone_id, (p.lat, p.lon))
             dx, dy = (target[1]-p.lon)*scale, (target[0]-p.lat)*self.METERS_PER_DEGREE
             distance = math.hypot(dx, dy)
-            if not inspect and distance < 12:
+            if self.external_waypoints is None and not inspect and distance < 12:
                 self.route_indices[p.drone_id] = (idx+1) % len(route)
                 target = route[(idx+1) % len(route)]
                 dx, dy = (target[1]-p.lon)*scale, (target[0]-p.lat)*self.METERS_PER_DEGREE
@@ -343,23 +351,24 @@ class PSOEngine:
             # Constrained PSO velocity update in BOTH patrol and inspection modes.
             # No evidence => cognitive/social attraction is zero, avoiding false
             # attraction to spawn. A coverage term supplies unexplored objectives.
-            r1, r2 = random.random(), random.random()
-            cx = (p.pbest_lon-p.lon)*scale if inspect and p.pbest_fitness > .3 else 0
-            cy = (p.pbest_lat-p.lat)*self.METERS_PER_DEGREE if inspect and p.pbest_fitness > .3 else 0
-            social_x, social_y = (vx,vy) if inspect else (0.0,0.0)
-            coverage_x, coverage_y = (0.0,0.0) if inspect else (.5*vx,.5*vy)
-            vx = self.config.inertia_weight*p.vx + self.config.cognitive_coeff*r1*max(-2,min(2,cx*.05)) + self.config.social_coeff*r2*social_x + coverage_x
-            vy = self.config.inertia_weight*p.vy + self.config.cognitive_coeff*r1*max(-2,min(2,cy*.05)) + self.config.social_coeff*r2*social_y + coverage_y
+            if self.external_waypoints is None:
+                r1, r2 = random.random(), random.random()
+                cx = (p.pbest_lon-p.lon)*scale if inspect and p.pbest_fitness > .3 else 0
+                cy = (p.pbest_lat-p.lat)*self.METERS_PER_DEGREE if inspect and p.pbest_fitness > .3 else 0
+                social_x, social_y = (vx,vy) if inspect else (0.0,0.0)
+                coverage_x, coverage_y = (0.0,0.0) if inspect else (.5*vx,.5*vy)
+                vx = self.config.inertia_weight*p.vx + self.config.cognitive_coeff*r1*max(-2,min(2,cx*.05)) + self.config.social_coeff*r2*social_x + coverage_x
+                vy = self.config.inertia_weight*p.vy + self.config.cognitive_coeff*r1*max(-2,min(2,cy*.05)) + self.config.social_coeff*r2*social_y + coverage_y
             for other in particles:
                 if other.drone_id == p.drone_id:
                     continue
                 ex = (p.lon-other.lon)*scale
                 ey = (p.lat-other.lat)*self.METERS_PER_DEGREE
                 dist = math.hypot(ex, ey)
-                if dist < self.config.safe_drone_distance_m * 2.5:
+                if dist < self.config.safe_drone_distance_m * 3.0:
                     if dist < .1:
                         ex, ey, dist = (-1 if p.drone_id < other.drone_id else 1), 0, 1
-                    strength = min(20, (self.config.safe_drone_distance_m*2.5-dist)*.6)
+                    strength = min(25, (self.config.safe_drone_distance_m*3.0-dist)*.8)
                     vx += ex/dist*strength
                     vy += ey/dist*strength
             target_alt = self.config.inspect_altitude if inspect else self.capabilities.get(p.drone_id, {}).get("search_altitude_m", self.config.search_altitude)

@@ -44,3 +44,15 @@ class HubClient:
             return data if data.get('telemetry_fresh') and data.get('guidance') else None
         except (requests.RequestException, ValueError):
             return None
+
+
+    def send_observation(self, measurement, jpeg_bytes, heading):
+        """Use a NEW, paired drone pose+nadir image. Not a phone position or old frame."""
+        import base64
+        if self.drone_id is None:
+            raise RuntimeError('Register the volunteer first')
+        response=self.session.post(f'{self.base_url}/api/volunteer/{self.drone_id}/observation',
+            json={**vars(measurement),'heading':heading,'nadir_camera':True,
+                  'jpeg_base64':base64.b64encode(jpeg_bytes).decode('ascii')},timeout=5)
+        response.raise_for_status()
+        return response.json()

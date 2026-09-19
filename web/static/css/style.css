@@ -724,3 +724,8 @@ dialog .inline {
     transition: none !important;
   }
 }
+
+.scenario-panel {padding: 8px 14px; border-bottom: 1px solid #334354; font-size: 12px; max-height: 190px; overflow: auto;}
+.scenario-panel label {display:inline-block;margin:6px 12px 6px 0;}
+.scenario-panel input[type=number]{width:80px;}
+.scenario-panel p{margin:6px 0;color:#abb9cc;}

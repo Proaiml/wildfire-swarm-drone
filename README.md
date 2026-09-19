@@ -62,3 +62,15 @@ Her kontrol adımında yatay komut şu kısıtlı PSO güncellemesinden üretili
 `v_next = w*v + c1*r1*(pbest-x) + c2*r2*(evidence_target-x) + coverage + separation`
 
 Konum farkları metre uzayında hız ölçeğine dönüştürülür. Kanıt bulunmadığında bilişsel/sosyal yangın çekimi sıfırlanır; kapsama terimi sektördeki keşfi sürdürür. Kanıt bulunduğunda PSO kişisel ve paylaşılan hedef bilgisini kullanır. Ardından ivme, araç kapasitesi, kapalı alan ve sınır kontrolleri uygulanır. Bu yöntem saf klasik PSO değil, görev ve güvenlik kısıtları eklenmiş PSO'dur. Sosyal terimi kapatma ve atalet değiştirme regresyonları, bu terimlerin hareketi gerçekten etkilediğini sınar.
+
+
+## Gizli yangın deneyleri ve sonuçlar
+
+Haritada **Tatbikat hedefi** ile gizli hedef eklenir; tatbikat panelinden gecikmeli artçı yangın ve yalnızca operatöre görünen gerçeklik katmanı seçilir. **Kayıt tekrarları** `/static/benchmark.html` adresindedir. Canlı görev motoru kısıtlı PSO olarak korunur.
+
+- [Karşılaştırmalı tablo, yöntem ve başarısız koşular](docs/SWARM_COMPARISON_TR.md)
+- [Gerçek drone ekleme: PX4, ArduPilot, DJI, Parrot ve ortak kamera/telemetri sözleşmesi](docs/DRONE_INTEGRATION_TR.md)
+- [Ham karşılaştırma kayıtları](artifacts/swarm_comparison/runs.json)
+- [Gerçek YOLO çağrılarıyla ayrı deneme](artifacts/operator_trial/trial.json)
+
+Sentetik arama benchmark'ı gerçek yangın algılama veya fiziksel sürü uçuşu yeterliliği değildir. Üretici adaptörü ve uçuş kabulü tamamlanmayan cihazlar destekleniyor gibi gösterilmez.

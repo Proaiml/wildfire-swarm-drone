@@ -305,6 +305,7 @@ function renderIncidents() {
 }
 function render(next) {
   state = next;
+  $("social-state").textContent = state.gbest.found_by && state.gbest.fitness > 0 ? `PSO ortak gözlem: ${state.gbest.found_by} · skor ${state.gbest.fitness.toFixed(2)}. Yakın drone’lar inceler; diğerleri taramayı sürdürür.` : "PSO: geçerli ortak yangın gözlemi yok; sektör keşfi sürüyor.";
   lastMessage = Date.now();
   $("connection").textContent = "● Telemetri bağlı";
   $("connection").className = "connection";
@@ -394,7 +395,7 @@ async function onMapClick(event) {
       tool === "report"
         ? "/api/incidents/report"
         : "/api/mission/scenario/target",
-      { lat, lon, intensity: 0.95 },
+      { lat, lon, intensity: 0.95, ...(tool === "scenario" ? {delay_seconds: Number($("scenario-delay").value)} : {}) },
     );
     toast(
       tool === "report"
@@ -608,3 +609,34 @@ $("export").onclick = action(async () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
+
+
+const truthLayer = L.layerGroup().addTo(map);
+async function refreshScenarioTruth() {
+  try {
+    const response = await fetch("/api/mission/scenario/truth");
+    if (!response.ok) return;
+    const data = await response.json();
+    truthLayer.clearLayers();
+    $("scenario-status").textContent = `${Math.floor(data.simulation_seconds)} s • ` + data.targets.map(t =>
+      `${t.id}: ${!t.active ? "bekliyor (" + Math.ceil(t.ignition_s-data.simulation_seconds) + " s)" : t.nearby_sensor_candidate ? "yakında sensör adayı var" : "henüz sensör adayı yok"}`).join(" | ");
+    if (!$("truth-toggle").checked) return;
+    for (const t of data.targets) L.circleMarker([t.lat,t.lon], {
+      radius: 10, color: t.nearby_sensor_candidate ? "#67e6a5" : "#e6a4ff",
+      fillOpacity: t.active ? .35 : .05, dashArray: "3 5"
+    }).bindTooltip(`${t.id} • SADECE OPERATÖR • ${t.active ? "aktif" : "bekliyor"}`).addTo(truthLayer);
+  } catch (_) { /* Connection status is handled by the telemetry watchdog. */ }
+}
+$("truth-toggle").addEventListener("change", refreshScenarioTruth);
+setInterval(refreshScenarioTruth, 2000);
+$("benchmark-results").addEventListener("click", async () => {
+  try {
+    const r = await fetch("/api/benchmarks/results");
+    if (!r.ok) throw new Error("Sonuçlar okunamadı");
+    const data = await r.json();
+    $("benchmark-summary").textContent = data.status === "not_run" ? "Henüz tamamlanmış karşılaştırma yok." :
+      `${data.status} • ${data.completed_runs} koşu. Sentetik sensör / fiziksel uçuş kanıtı değildir. ` +
+      data.ranking.slice(0,5).map((v,i) => `${i+1}. ${v.algorithm}: %${(100*v.recall).toFixed(1)} keşif`).join(" | ");
+  } catch(e) { toast(e.message); }
+});
+refreshScenarioTruth();

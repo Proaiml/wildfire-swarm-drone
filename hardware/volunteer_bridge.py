@@ -4,6 +4,8 @@ Operasyon bölgesine sonradan gelen üçüncü parti/vatandaş drone'ların sür
 """
 
 import time
+import copy
+import threading
 import math
 from typing import Optional, Dict, Any
 import numpy as np
@@ -33,6 +35,10 @@ class VolunteerDrone(BaseDrone):
         super().__init__(drone_id=drone_id, drone_type=DroneType.VOLUNTEER)
         self.pilot_name = pilot_name
         self.last_measurement_time = 0.0
+        self._frame_lock = threading.Lock()
+        self._uploaded_frame = None
+        self._frame_telemetry = None
+        self._consumed_frame_time = 0.0
         self.camera_stream_url = camera_stream_url
 
         self.telemetry.lat = initial_lat
@@ -126,14 +132,28 @@ class VolunteerDrone(BaseDrone):
         self.telemetry.last_heartbeat = measured
 
     def update_camera_frame(self, frame: np.ndarray):
-        """Web veya telefon kamerasından gelen görüntüyü günceller."""
-        if frame is not None and frame.size > 0:
-            self._default_frame = frame
+        """Pair decoded pixels with the acquisition telemetry supplied in the same request."""
+        if frame is None or frame.size == 0:
+            raise ValueError("Empty camera frame")
+        with self._frame_lock:
+            self._uploaded_frame = frame.copy()
+            self._frame_telemetry = copy.copy(self.telemetry)
+
+    def get_camera_observation(self):
+        with self._frame_lock:
+            stamp = self._frame_telemetry.last_heartbeat if self._frame_telemetry else 0
+            if not self._uploaded_frame is None and time.time()-stamp <= 3 and stamp > self._consumed_frame_time:
+                self._consumed_frame_time = stamp
+                return copy.copy(self._frame_telemetry), self._uploaded_frame.copy()
+        return copy.copy(self.telemetry), None
 
     def get_telemetry(self) -> DroneTelemetry:
         return self.telemetry
 
     def get_camera_frame(self) -> Optional[np.ndarray]:
+        with self._frame_lock:
+            if self._frame_telemetry and time.time()-self._frame_telemetry.last_heartbeat <= 3:
+                return self._uploaded_frame.copy()
         if self._cap and self._cap.isOpened():
             ret, frame = self._cap.read()
             if ret:

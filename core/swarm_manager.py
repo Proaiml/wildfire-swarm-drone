@@ -75,6 +75,7 @@ class SwarmManager:
         # Operasyonel istatistikler
         self.mission_start_time = 0.0
         self.mission_elapsed = 0.0
+        self.scenario_targets = []
         self.total_fire_detections = 0
         self.leaderboard: List[Dict[str, Any]] = []
 
@@ -227,6 +228,8 @@ class SwarmManager:
             self.is_mission_active = False
             self.mission_elapsed = 0.0
             self.perception_epoch += 1
+            self.scenario_targets.clear()
+            self.pso.elapsed_seconds = 0.0
             self.latest_annotated_frames.clear()
             self.latest_detections.clear()
             self.pso.particles.clear()
@@ -434,7 +437,21 @@ class SwarmManager:
         self.total_fire_detections = 0
 
     @synchronized
-    def add_scenario_target(self, lat, lon, confidence=.95):
+    def add_scenario_target(self, lat, lon, confidence=.95, delay_seconds=0):
+        target = {"id": f"scenario_{len(self.scenario_targets)+1}", "lat": lat, "lon": lon,
+                  "confidence": confidence, "kind": self.mission_kind,
+                  "ignition_s": self.pso.elapsed_seconds + delay_seconds, "active": False}
+        self.scenario_targets.append(target)
+        self._ignite_scenario_targets()
+        return copy.deepcopy(target)
+
+    def _ignite_scenario_targets(self):
+        for target in self.scenario_targets:
+            if not target["active"] and target["kind"] == self.mission_kind and target["ignition_s"] <= self.pso.elapsed_seconds:
+                target["active"] = True
+                self._add_scenario_truth(target["lat"], target["lon"], target["confidence"])
+
+    def _add_scenario_truth(self, lat, lon, confidence):
         targets = self.environmental_fires if self.mission_kind == "fire" else self.sar_targets
         targets.append((lat, lon, confidence))
         for d in self.drones.values():
@@ -453,6 +470,7 @@ class SwarmManager:
         for c in self.pso.discovered_fire_clusters:
             if c["id"] == incident_id:
                 c["status"] = status
+                c["status_changed_s"] = self.pso.elapsed_seconds
                 c["verified"] = status == "confirmed"
                 self.pso.reset_gbest()
                 return copy.deepcopy(c)
@@ -473,13 +491,17 @@ class SwarmManager:
                 t = copy.copy(drone.get_telemetry())
                 if not t.is_in_air or (not isinstance(drone, SimulatedDrone) and time.time()-t.last_heartbeat > 3):
                     continue
-                frame = drone.get_camera_frame()
+                if isinstance(drone, VolunteerDrone):
+                    t, frame = drone.get_camera_observation()
+                else:
+                    frame = drone.get_camera_frame()
                 if frame is None:
                     continue
                 detections, score, annotated = [], 0.0, frame.copy()
                 observed = []
                 if kind == "fire":
-                    detections, score, annotated = self.detector.detect(frame, t.lat, t.lon, t.alt, t.heading)
+                    detections, score, annotated = self.detector.detect(frame, t.lat, t.lon, t.alt, t.heading,
+                        camera_hfov_deg=drone.capabilities.get("camera_hfov_deg", 84))
                     observed = [(d.estimated_gps[0], d.estimated_gps[1], d.confidence)
                                 for d in detections if d.estimated_gps]
                 elif isinstance(drone, SimulatedDrone):
@@ -500,13 +522,15 @@ class SwarmManager:
                         continue
                     self.latest_annotated_frames[drone_id] = annotated
                     self.latest_detections[drone_id] = detections
-                    suppressed = any(c.get("status") in ("confirmed", "dismissed", "resolved") and
+                    suppressed = any((c.get("status") == "confirmed" or
+                        (c.get("status") in ("dismissed", "resolved") and self.pso.elapsed_seconds-c.get("status_changed_s", self.pso.elapsed_seconds) < 60)) and
                         math.hypot((c["lat"]-t.lat)*111139, (c["lon"]-t.lon)*111139*math.cos(math.radians(t.lat))) < 100
                         for c in self.pso.discovered_fire_clusters)
                     if suppressed:
                         score = 0.0
                     drone.telemetry.current_fire_score = score
-                    p = self.pso.register_or_update_particle(drone_id, drone.telemetry.lat, drone.telemetry.lon, drone.telemetry.alt, score)
+                    p = self.pso.register_or_update_particle(drone_id, t.lat, t.lon, t.alt, score)
+                    p.lat, p.lon, p.alt = drone.telemetry.lat, drone.telemetry.lon, drone.telemetry.alt
                     for lat, lon, confidence in observed:
                         if not self.geofence_mgr.is_point_inside(lat, lon, t.alt)[0]:
                             self.record_candidate(lat, lon, confidence, "simulation" if isinstance(drone, SimulatedDrone) else "camera_estimate")
@@ -519,6 +543,7 @@ class SwarmManager:
     def tick(self, dt=None):
         dt = self.update_interval if dt is None else min(.5, max(.001, dt))
         self.pso.config.dt = dt
+        self._ignite_scenario_targets()
         active = set()
         for drone_id, drone in self.drones.items():
             t = drone.get_telemetry()

@@ -41,3 +41,7 @@ htmlcov/
 *.log
 Thumbs.db
 .DS_Store
+
+# Temporary split benchmark batches; merged evidence is in swarm_comparison.
+artifacts/optimization_extended/
+artifacts/cma_comparison/

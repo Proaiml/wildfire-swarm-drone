@@ -1,0 +1,35 @@
+{
+  "status": "complete",
+  "completed_runs": 1,
+  "expected_runs": 1,
+  "mealpy_version": "3.0.3",
+  "seeds": [
+    105
+  ],
+  "algorithms": [
+    "Random-waypoints"
+  ],
+  "sensor": "Synthetic 40m radius, 20% false negative, 2s observation. NOT YOLO.",
+  "budget_per_replan": 200,
+  "replan_seconds": 30,
+  "horizon_seconds": 600,
+  "ranking": [
+    {
+      "algorithm": "Random-waypoints",
+      "runs": 1,
+      "recall": 0.5,
+      "secondary_recall": 0.5,
+      "penalized_delay_s": 273.0,
+      "minimum_separation_m": 46.112688617952394,
+      "safety_pass": true,
+      "bounds_violations": 0
+    }
+  ],
+  "failures": [],
+  "limitations": [
+    "Screening only, not universal best or flight validation.",
+    "No wind/terrain/radio/battery comparison, no false positives.",
+    "Library methods optimize the same observed coverage proxy; native PSO is an end-to-end reference.",
+    "Safety violations do not disappear from the ranking; inspect them before selection."
+  ]
+}

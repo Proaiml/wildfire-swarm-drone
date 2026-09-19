@@ -329,3 +329,69 @@ def test_pso_inertia_affects_patrol_motion(monkeypatch):
         drone.vx=2
         return p.step()['D'][0]
     assert command(.8)>command(0)
+
+# Scenario events are sensor inputs, never planner evidence.
+def test_delayed_fire_not_visible_until_mission_time(manager):
+    add_sim(manager)
+    target=manager.add_scenario_target(37.003,28.003,delay_seconds=2)
+    assert not target['active'] and manager.environmental_fires==[]
+    for _ in range(10):manager.tick(.5)
+    assert manager.environmental_fires==[]  # Paused wall time does not ignite it.
+    manager.start_mission()
+    for _ in range(5):manager.tick(.5)
+    assert len(manager.environmental_fires)==1
+    assert manager.get_swarm_state()['fire_clusters']==[]
+    assert manager.pso.gbest_fitness==0
+    assert 'scenario_targets' not in manager.get_swarm_state()
+
+
+def test_resolved_fire_can_generate_new_candidate_after_cooldown(manager):
+    old=manager.record_candidate(37,28,.9,'simulation')
+    manager.update_incident(old['id'],'resolved')
+    assert manager.record_candidate(37,28,.9,'simulation')['id']==old['id']
+    manager.pso.elapsed_seconds+=61
+    new=manager.record_candidate(37,28,.9,'simulation')
+    assert new['id']!=old['id'] and new['status']=='candidate'
+    assert old['status']=='resolved' and not new['verified']
+
+
+def test_relocation_cancels_pending_old_location_events(manager):
+    manager.add_scenario_target(37,28,delay_seconds=100)
+    manager.relocate_swarm(38,29,regenerate_fires=False)
+    assert manager.scenario_targets==[]
+
+
+def test_uploaded_frame_is_consumed_once_and_keeps_acquisition_pose():
+    d=VolunteerDrone('V-CAMERA','Pilot',37,28,40)
+    stamp=time.time()
+    d.update_from_external(37,28,40,80,stamp)
+    d.update_camera_frame(np.zeros((48,64,3),dtype=np.uint8))
+    d.update_from_external(37.001,28.001,45,79,stamp+.01)
+    t,frame=d.get_camera_observation()
+    assert t.lat==37 and t.alt==40 and frame.shape==(48,64,3)
+    assert d.get_camera_observation()[1] is None
+
+
+def test_expired_uploaded_frame_cannot_be_used_as_current_evidence():
+    d=VolunteerDrone('V-OLD','Pilot',37,28,40)
+    d.update_from_external(37,28,40,80,time.time())
+    d.update_camera_frame(np.zeros((48,64,3),dtype=np.uint8))
+    d._frame_telemetry.last_heartbeat-=4
+    assert d.get_camera_observation()[1] is None
+    assert d.get_camera_frame() is None
+
+
+def test_real_camera_http_contract_validates_pixels_and_replay(manager,monkeypatch):
+    import web.app as webapp
+    import base64,cv2
+    monkeypatch.setattr(webapp,'swarm_mgr',manager)
+    d=VolunteerDrone('V-HTTP','Pilot',37,28,40);manager.register_drone(d)
+    client=TestClient(webapp.app)
+    _,jpg=cv2.imencode('.jpg',np.zeros((48,64,3),dtype=np.uint8))
+    payload={'lat':37,'lon':28,'alt':40,'battery':80,'captured_at':time.time(),
+             'heading':90,'nadir_camera':True,'jpeg_base64':base64.b64encode(jpg).decode()}
+    response=client.post('/api/volunteer/V-HTTP/observation',json=payload)
+    assert response.status_code==200 and response.json()['inference_pending']
+    assert client.post('/api/volunteer/V-HTTP/observation',json=payload).status_code==409
+    payload['jpeg_base64']='abcd'
+    assert client.post('/api/volunteer/V-HTTP/observation',json=payload).status_code==422

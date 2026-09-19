@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PyreSwarm • Ortak operasyon merkezi</title>
     <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="/static/css/style.css?v=3" />
+    <link rel="stylesheet" href="/static/css/style.css?v=4" />
   </head>
   <body>
     <header class="topbar">
@@ -14,7 +14,7 @@
         ><span>PYRESWARM<small>ORTAK OPERASYON MERKEZİ</small></span></a
       ><span class="environment">SİMÜLASYON + PİLOT DESTEĞİ</span>
       <div class="connection" id="connection" role="status">Bağlanıyor…</div>
-      <a href="/docs/HUB_GUIDE_TR.md" target="_blank">Kullanım kılavuzu ↗</a>
+      <a href="/docs/DRONE_INTEGRATION_TR.md" target="_blank">Drone entegrasyon kılavuzu ↗</a>
     </header>
     <section class="missionbar">
       <div>
@@ -74,6 +74,17 @@
           ><button data-tool="scenario">◇ Tatbikat hedefi</button
           ><button id="base-settings">Üs</button>
         </div>
+        <details class="scenario-panel">
+          <summary>Tatbikat: gizli / artçı yangınlar ve algoritma sonuçları</summary>
+          <label><input id="truth-toggle" type="checkbox" /> Operatör gerçeklik katmanı</label>
+          <label>Yeni hedefin gecikmesi (görev saniyesi)
+            <input id="scenario-delay" type="number" min="0" max="3600" value="0" step="30" />
+          </label>
+          <p>◇ Tatbikat hedefi düğmesini seçip haritaya tıklayın. 0 hemen, 120 iki dakika sonra tutuşur. PSO konumu sensör gözleminden öğrenir.</p>
+          <div id="scenario-status" aria-live="polite"></div>
+          <button id="benchmark-results">Karşılaştırma sonuçlarını göster</button>
+          <div id="benchmark-summary"></div><a href="/static/benchmark.html" target="_blank">Rotayı ve keşif anlarını tekrar izle ↗</a>
+        </details>
         <div class="draw-help" id="draw-help" hidden>
           <span id="draw-text"></span
           ><button id="finish-draw">Alanı tamamla</button
@@ -113,7 +124,7 @@
           <h3>İhbar ve tespitler</h3>
           <span id="incident-count">0</span>
         </div>
-        <div id="incidents" class="incident-list"></div>
+        <p id="social-state" class="panel-note"></p><div id="incidents" class="incident-list"></div>
         <details class="zones">
           <summary>Kapatılmış alanlar <span id="zone-count">0</span></summary>
           <div id="zones"></div>
@@ -262,6 +273,6 @@
       </form>
     </dialog>
     <script src="/static/vendor/leaflet/leaflet.js"></script>
-    <script src="/static/js/dashboard.js?v=3"></script>
+    <script src="/static/js/dashboard.js?v=4"></script>
   </body>
 </html>

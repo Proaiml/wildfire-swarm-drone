@@ -1,0 +1,10 @@
+{
+  "attempted": 685,
+  "completed": 680,
+  "failed": 5,
+  "recomputed_metrics_match": true,
+  "same_hidden_scenarios_verified": true,
+  "no_pretime_detections": true,
+  "evaluation_caps_verified": true,
+  "independent_holdout": false
+}

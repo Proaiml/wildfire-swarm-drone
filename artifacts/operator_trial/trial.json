@@ -1,0 +1,1954 @@
+{
+  "seed": 2026,
+  "sensor": "Actual best.pt YOLO on simulated photographic frames; no mock",
+  "model_sha256": "b91633799ceb052c814b4f8b77a37efc9a40f002d528df97d74463585fa4f28f",
+  "seconds": 600,
+  "wall_seconds": 15.101032799997483,
+  "before_start_candidates": 0,
+  "truth": [
+    {
+      "id": "scenario_1",
+      "lat": 37.0035,
+      "lon": 28.004,
+      "confidence": 0.95,
+      "kind": "fire",
+      "ignition_s": 0.0,
+      "active": true
+    },
+    {
+      "id": "scenario_2",
+      "lat": 36.997,
+      "lon": 27.9975,
+      "confidence": 0.95,
+      "kind": "fire",
+      "ignition_s": 0.0,
+      "active": true
+    },
+    {
+      "id": "scenario_3",
+      "lat": 37.001,
+      "lon": 28.003,
+      "confidence": 0.95,
+      "kind": "fire",
+      "ignition_s": 180.0,
+      "active": true
+    }
+  ],
+  "candidates": [
+    {
+      "id": "fire_1",
+      "lat": 36.997485261144725,
+      "lon": 27.997273853031857,
+      "confidence": 0.5695396065711975,
+      "detections_count": 2,
+      "verified": false,
+      "kind": "fire",
+      "source": "simulation",
+      "status": "candidate",
+      "created_monotonic": 172.5
+    },
+    {
+      "id": "fire_2",
+      "lat": 36.997043069508244,
+      "lon": 27.99749430759419,
+      "confidence": 0.5468805432319641,
+      "detections_count": 1,
+      "verified": false,
+      "kind": "fire",
+      "source": "simulation",
+      "status": "candidate",
+      "created_monotonic": 178.5
+    },
+    {
+      "id": "fire_3",
+      "lat": 37.003519578987195,
+      "lon": 28.003694485944255,
+      "confidence": 0.3908591568470001,
+      "detections_count": 2,
+      "verified": false,
+      "kind": "fire",
+      "source": "simulation",
+      "status": "candidate",
+      "created_monotonic": 574.5
+    },
+    {
+      "id": "fire_4",
+      "lat": 37.00325118429674,
+      "lon": 28.004234984052676,
+      "confidence": 0.2969707250595093,
+      "detections_count": 1,
+      "verified": false,
+      "kind": "fire",
+      "source": "simulation",
+      "status": "candidate",
+      "created_monotonic": 574.5
+    }
+  ],
+  "minimum_separation_m": 60.82989061153705,
+  "history": [
+    {
+      "t": 0.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00149571907735,
+          "lon": 28.000995433742055,
+          "alt": 40.5,
+          "speed": 1.2,
+          "heading": 220.4,
+          "battery": 100.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.998504975618324,
+          "lon": 28.001496718616423,
+          "alt": 40.5,
+          "speed": 1.2,
+          "heading": 332.2,
+          "battery": 100.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.9985,
+            28.0015
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99745065572235
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.000994579384276,
+          "lon": 27.99850187474924,
+          "alt": 40.5,
+          "speed": 1.2,
+          "heading": 164.6,
+          "battery": 100.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99900475759814,
+          "lon": 27.999003754271666,
+          "alt": 40.5,
+          "speed": 1.2,
+          "heading": 32.2,
+          "battery": 100.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 0
+    },
+    {
+      "t": 60.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.997957808499066,
+          "lon": 27.996770404241296,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 215.5,
+          "battery": 95.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.003066696658856,
+          "lon": 27.999791621685958,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 310.1,
+          "battery": 95.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.9985,
+            28.0015
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99745065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99593248915069,
+          "lon": 28.000230439128067,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 162.9,
+          "battery": 95.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.002346848898206,
+          "lon": 28.0011991032473,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 38.1,
+          "battery": 95.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 0
+    },
+    {
+      "t": 120.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.997209233785696,
+          "lon": 27.99430138266158,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 0.9,
+          "battery": 90.9,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.001969893074076,
+          "lon": 27.997283033484464,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 178.8,
+          "battery": 90.9,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.9985,
+            28.0015
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99745065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.999754399712224,
+          "lon": 28.00050366874707,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.5,
+          "battery": 90.9,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00250386549841,
+          "lon": 28.003598437568623,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.9,
+          "battery": 91.1,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 0
+    },
+    {
+      "t": 180.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00260155831786,
+          "lon": 27.994409980987733,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 0.9,
+          "battery": 86.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.997304495874424,
+          "lon": 27.997326739866182,
+          "alt": 44.5,
+          "speed": 8.8,
+          "heading": 349.8,
+          "battery": 86.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 1.0,
+          "pbest_pos": [
+            36.99729202671979,
+            27.997401659200385
+          ],
+          "detections_count": 1,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "inspect",
+          "waypoint": [
+            36.997485261144725,
+            27.997273853031857
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00477180811371,
+          "lon": 28.000939397818673,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 97.2,
+          "battery": 86.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.0015
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99747618836813,
+          "lon": 28.002982141767173,
+          "alt": 45.5,
+          "speed": 8.1,
+          "heading": 263.9,
+          "battery": 86.6,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "inspect",
+          "waypoint": [
+            36.997485261144725,
+            27.997273853031857
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 240.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00229139230517,
+          "lon": 27.995610007436607,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.7,
+          "battery": 81.9,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.9955
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99550621762929,
+          "lon": 27.9985930869309,
+          "alt": 60.0,
+          "speed": 9.8,
+          "heading": 22.4,
+          "battery": 82.1,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.9985
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99977517772186,
+          "lon": 28.001572093742787,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.7,
+          "battery": 81.9,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.0015
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99586396566136,
+          "lon": 28.002488552514464,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 123.3,
+          "battery": 82.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 300.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99689318097127,
+          "lon": 27.995524334117167,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.7,
+          "battery": 77.4,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.9955
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.000901059047116,
+          "lon": 27.99855934105341,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.3,
+          "battery": 77.6,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.9985
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99537123333707,
+          "lon": 28.00253593191012,
+          "alt": 60.0,
+          "speed": 8.2,
+          "heading": 52.9,
+          "battery": 77.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00254934427765
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99887123344144,
+          "lon": 28.00462352797778,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.0,
+          "battery": 77.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.0045
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 360.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.998202415592246,
+          "lon": 27.996651656010314,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.3,
+          "battery": 73.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99654934427765
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.0040018026726,
+          "lon": 27.99968623217524,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.5,
+          "battery": 73.2,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99954934427765
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00072162156228,
+          "lon": 28.002611556777993,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.3,
+          "battery": 73.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00254934427765
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00426908917554,
+          "lon": 28.00450794418826,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.0,
+          "battery": 73.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.0045
+          ],
+          "telemetry_age_s": 0.1,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 420.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00360062573929,
+          "lon": 27.996565864096482,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 359.3,
+          "battery": 68.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99654934427765
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.998603588422164,
+          "lon": 27.999600867774305,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.7,
+          "battery": 68.7,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99954934427765
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00360674892074,
+          "lon": 28.002256788806232,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 189.9,
+          "battery": 68.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00062795840068,
+          "lon": 28.00563284347142,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 180.7,
+          "battery": 68.6,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00554934427765
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 480.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00077054244772,
+          "lon": 27.995635630189078,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 189.9,
+          "battery": 64.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99705799092573,
+          "lon": 27.99911120282551,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 350.1,
+          "battery": 64.2,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99745065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99828883445671,
+          "lon": 28.001092117519985,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 189.9,
+          "battery": 64.0,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.995334743496535,
+          "lon": 28.00553662637233,
+          "alt": 60.0,
+          "speed": 3.1,
+          "heading": 194.3,
+          "battery": 64.1,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    },
+    {
+      "t": 540.5,
+      "drones": {
+        "D0": {
+          "drone_id": "D0",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99545615304242,
+          "lon": 27.994471733944735,
+          "alt": 60.0,
+          "speed": 9.2,
+          "heading": 189.9,
+          "battery": 59.5,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.0015,
+            28.001
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            36.995359909662675,
+            27.99445065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.994
+            ],
+            [
+              37.005,
+              27.997
+            ]
+          ]
+        },
+        "D1": {
+          "drone_id": "D1",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.002375902767305,
+          "lon": 27.997946532298265,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 350.1,
+          "battery": 59.7,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.99706921793185,
+            27.997480366059115
+          ],
+          "detections_count": 2,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            27.99745065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              27.997
+            ],
+            [
+              37.005,
+              28.0
+            ]
+          ]
+        },
+        "D2": {
+          "drone_id": "D2",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 36.99736195276306,
+          "lon": 28.000404269981182,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 0.3,
+          "battery": 59.6,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            37.001,
+            27.9985
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00045065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.0
+            ],
+            [
+              37.005,
+              28.003
+            ]
+          ]
+        },
+        "D3": {
+          "drone_id": "D3",
+          "type": "SIMULATED",
+          "mode": "MISSION_PSO",
+          "lat": 37.00038166751796,
+          "lon": 28.00438329090555,
+          "alt": 60.0,
+          "speed": 10.0,
+          "heading": 350.1,
+          "battery": 59.6,
+          "is_low_battery": false,
+          "current_score": 0.0,
+          "pbest_score": 0.0,
+          "pbest_pos": [
+            36.999,
+            27.999
+          ],
+          "detections_count": 0,
+          "is_armed": true,
+          "is_in_air": true,
+          "role": "search",
+          "waypoint": [
+            37.004640090337325,
+            28.00345065572235
+          ],
+          "telemetry_age_s": 0.0,
+          "safety_hold": false,
+          "control_enabled": true,
+          "capabilities": {
+            "max_speed_ms": 10.0,
+            "max_altitude_m": 120.0,
+            "camera_hfov_deg": 84.0,
+            "search_altitude_m": 60.0
+          },
+          "sector": [
+            [
+              36.995,
+              28.003
+            ],
+            [
+              37.005,
+              28.006
+            ]
+          ]
+        }
+      },
+      "incidents": 2
+    }
+  ],
+  "limitations": [
+    "Photos cover full frame; GPS estimates are approximate and cannot establish target identity.",
+    "Not aerial footage or real-flight validation. Synthetic photo bank has known misses."
+  ]
+}

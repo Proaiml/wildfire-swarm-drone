@@ -117,10 +117,8 @@ swarm_mgr = SwarmManager(
 # Başlangıçta gerçekçi çevresel yangın odakları ve arama filosu
 def initialize_default_swarm():
     # Üs çevresinde 2 adet gerçekçi duman/yangın odağı
-    swarm_mgr.environmental_fires = [
-        (swarm_mgr.center_lat + 0.0035, swarm_mgr.center_lon + 0.0040, 0.95),  # Kuzeydoğu odağı
-        (swarm_mgr.center_lat - 0.0030, swarm_mgr.center_lon - 0.0025, 0.88),  # Güneybatı odağı
-    ]
+    swarm_mgr.add_scenario_target(swarm_mgr.center_lat + 0.0035, swarm_mgr.center_lon + 0.0040, 0.95)
+    swarm_mgr.add_scenario_target(swarm_mgr.center_lat - 0.0030, swarm_mgr.center_lon - 0.0025, 0.88)
 
     # 4 Arama Dronu
     offsets = [
@@ -287,9 +285,13 @@ async def set_mission_kind(req: MissionKindRequest):
     swarm_mgr.set_mission_kind(req.kind)
     return {"status": "success", "kind": req.kind}
 
+class ScenarioTargetRequest(FireSpotRequest):
+    delay_seconds: float = Field(default=0, ge=0, le=3600, allow_inf_nan=False)
+
+
 @app.post("/api/mission/scenario/target")
-async def scenario_target(req: FireSpotRequest):
-    swarm_mgr.add_scenario_target(req.lat, req.lon, req.intensity)
+async def scenario_target(req: ScenarioTargetRequest):
+    swarm_mgr.add_scenario_target(req.lat, req.lon, req.intensity, req.delay_seconds)
     return {"status": "success", "source": "hidden_simulation_truth"}
 
 @app.post("/api/incidents/report")
@@ -680,3 +682,72 @@ async def websocket_telemetry(websocket: WebSocket):
         pass
     except Exception as e:
         print(f"[WebSocket] Bağlantı kapandı: {e}")
+
+
+@app.get("/api/mission/scenario/truth")
+async def scenario_truth():
+    """Operator-only simulation truth. Never consumed by the planner or incident stream."""
+    import copy
+    import math
+    with swarm_mgr._lock:
+        targets = copy.deepcopy([t for t in swarm_mgr.scenario_targets if t["kind"] == swarm_mgr.mission_kind])
+        incidents = copy.deepcopy(swarm_mgr.pso.discovered_fire_clusters)
+        for t in targets:
+            matches = [c for c in incidents if c.get("source") == "simulation"
+                       and c.get("created_monotonic", -1) >= t["ignition_s"]
+                       and math.hypot((c["lat"]-t["lat"])*111139,
+                                      (c["lon"]-t["lon"])*111139*math.cos(math.radians(t["lat"]))) <= 75]
+            t["nearby_sensor_candidate"] = bool(matches) and t["active"]
+        return {"simulation_seconds": swarm_mgr.pso.elapsed_seconds, "targets": targets,
+                "note": "75 m yakınındaki sensör adayı; hedef kimliği veya gerçek yangın teyidi değildir."}
+
+
+@app.get("/api/benchmarks/results")
+async def benchmark_results():
+    path = os.path.join(BASE_DIR, "artifacts", "swarm_comparison", "summary.json")
+    if not os.path.exists(path):
+        return {"status": "not_run", "ranking": []}
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+@app.get("/api/benchmarks/runs")
+async def benchmark_runs():
+    from fastapi.responses import FileResponse
+    path = os.path.join(BASE_DIR, "artifacts", "swarm_comparison", "runs.json")
+    if not os.path.exists(path):
+        raise HTTPException(404, "Karşılaştırma henüz çalıştırılmadı")
+    return FileResponse(path, media_type="application/json")
+
+
+class CameraObservationRequest(VolunteerTelemetryRequest):
+    # Paired nadir camera sample; arbitrary gimbal pose is not supported by this model.
+    jpeg_base64: str = Field(min_length=4, max_length=2_800_000)
+    heading: float = Field(ge=0, lt=360)
+    nadir_camera: Literal[True]
+
+
+@app.post("/api/volunteer/{drone_id}/observation")
+async def volunteer_observation(drone_id: str, req: CameraObservationRequest):
+    import base64
+    import binascii
+    import cv2
+    import numpy as np
+    from hardware.volunteer_bridge import VolunteerDrone
+    try:
+        pixels = base64.b64decode(req.jpeg_base64, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(422, "Geçersiz base64 JPEG")
+    if not pixels.startswith(b"\xff\xd8"):
+        raise HTTPException(422, "JPEG görüntüsü gerekli")
+    frame = await asyncio.to_thread(cv2.imdecode, np.frombuffer(pixels, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if frame is None or frame.shape[0] > 2160 or frame.shape[1] > 3840:
+        raise HTTPException(422, "Geçersiz görüntü veya 3840x2160 sınırı aşıldı")
+    with swarm_mgr._lock:
+        drone = swarm_mgr.drones.get(drone_id)
+        if not isinstance(drone, VolunteerDrone):
+            raise HTTPException(404, "Gönüllü bulunamadı")
+        drone.update_from_external(req.lat, req.lon, req.alt, req.battery, req.captured_at)
+        drone.telemetry.heading = req.heading
+        drone.update_camera_frame(frame)
+    return {"status":"accepted", "inference_pending":True, "advisory_only":True}
