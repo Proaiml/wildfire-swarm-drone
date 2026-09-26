@@ -1,4 +1,4 @@
-> Tarihsel belge: güncel web kontrol akışı ve doğrulama sınırları için [REAL_WORLD_READINESS](REAL_WORLD_READINESS.md) ve hub kılavuzunu okuyun. Aşağıdaki önceki saha/başarım iddiaları güncel doğrulama sayılmaz.
+> **Tarihsel belge.** Bu belge önceki `src/` tabanlı mimariyi anlatır. Web hub'ı bugün `core/`, `hardware/` ve `web/` üzerinden çalışır. Güncel kullanım: [Saha kılavuzu](SAHA_KILAVUZU_TR.md) · güncel doğrulama: [HUB_VALIDATION](HUB_VALIDATION.md) · genel bakış: [README](../README.md). Buradaki başarım ve doğrulama ifadeleri güncel sürüm için kanıt sayılmaz.
 
 # PyreSwarm - Kullanım Kılavuzu (User Guide)
 
@@ -180,7 +180,7 @@ Sistemin tüm operasyonel, mimari ve akademik detayları yüksek çözünürlük
 
 ## 8. Testlerin Çalıştırılması
 
-Sistemin tüm birim, entegrasyon, emniyet değişmezi ve optimizasyon testlerini (57 test) koşturmak için:
+Sistemin tüm testlerini (güncel sürümde 118 test) koşturmak için:
 ```bash
 pytest tests/ -v
 ```

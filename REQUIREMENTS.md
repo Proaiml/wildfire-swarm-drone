@@ -1,3 +1,5 @@
+> **Tarihsel belge.** Bu belge önceki `src/` tabanlı mimariyi anlatır. Web hub'ı bugün `core/`, `hardware/` ve `web/` üzerinden çalışır. Güncel kullanım: [Saha kılavuzu](docs/SAHA_KILAVUZU_TR.md) · güncel doğrulama: [HUB_VALIDATION](docs/HUB_VALIDATION.md) · genel bakış: [README](README.md). Buradaki başarım ve doğrulama ifadeleri güncel sürüm için kanıt sayılmaz.
+
 # PyreSwarm — Gereksinimler ve İzlenebilirlik Matrisi (Requirements Traceability Matrix)
 **Platform:** Autonomous Wildfire Detection & Swarm Exploration Platform  
 **Sürüm:** 2.5.0-master  

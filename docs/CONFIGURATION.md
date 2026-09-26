@@ -1,28 +1,54 @@
-# PyreSwarm - Konfigürasyon ve Parametre Yönetimi (Configuration)
+# PyreSwarm — Yapılandırma
 
-Tüm platform parametreleri doğrulanmış (validated) ve modüler biçimde yönetilir. Kod içinde sihirli sayılar (magic numbers) yasaktır.
+## `config/mission_config.json`
 
-## 1. Temel Konfigürasyon Bölümleri
+Sunucu açılırken okunur. Arayüzden **Üs** değiştirilip "kalıcı kaydet" seçilirse bu dosyaya yazılır.
 
-### 1.1 Algılayıcı (Detector)
-* `model_path`: YOLO model ağırlıkları (`best.pt`)
-* `conf_threshold`: Asgari güven eşiği (Varsayılan: `0.25`)
-* `device`: `cuda` veya `cpu`
+| Alan | Anlamı |
+|---|---|
+| `base_station` | Üssün adı, konumu ve irtifası; varsayılan filo buradan kalkar |
+| `default_aoi` | Varsayılan arama alanı (`min_lat`, `max_lat`, `min_lon`, `max_lon`) |
+| `wind` | `speed_ms` ve `direction_deg` (rüzgârın **estiği** yön, 0 = kuzeyden). Açılışta uygulanır; arayüzden değiştirilebilir |
+| `presets` | Üs seçiminde hazır konumlar |
 
-### 1.2 Güvenlik ve Uçuş (Safety & Flight)
-* `min_altitude_m`: Asgari irtifa (Varsayılan: `25.0 m`)
-* `max_altitude_m`: Azami irtifa (Varsayılan: `120.0 m`)
-* `max_speed_ms`: Azami uçuş hızı (Varsayılan: `14.0 m/s`)
-* `safe_separation_m`: Asgari güvenli drone ayrılma mesafesi (Varsayılan: `30.0 m`)
+## Drone yetenekleri (her drone için)
 
-### 1.3 Batarya ve RTL (Battery & Failsafe)
-* `nominal_capacity_mah`: Batarya kapasitesi (Varsayılan: `5000 mAh`)
-* `nominal_voltage`: `14.8 V` (4S LiPo)
-* `safety_margin_percent`: RTL rezerv yüzdesi (Varsayılan: `%20.0`)
-* `critical_battery_threshold`: Acil iniş eşiği (Varsayılan: `%12.0`)
+Arayüzde **+ Ekle** formundan ya da API'de `capabilities` alanından verilir:
 
-### 1.4 Çok Amaçlı PSO (Swarm Optimizer)
-* `w_max`, `w_min`: Adaptif atalet sınırları (`0.85`, `0.40`)
-* `c1_initial`, `c2_initial`: Bilişsel ve sosyal katsayı başlangıçları (`2.0`, `1.2`)
-* `max_drones_per_incident`: Yangın başına azami görevlendirilecek drone (Varsayılan: `2`)
-* `taboo_radius_meters`: Yangın onaylandığında atanmamış drone'lar için tabu yarıçapı (`150.0 m`)
+| Alan | Aralık | Varsayılan | Etkisi |
+|---|---|---|---|
+| `max_speed_ms` | 1–14 | 10 | Hız sınırı ve sektör payı |
+| `search_altitude_m` | 25–120 | 60 | Arama irtifası; kamera ayak izini belirler |
+| `max_altitude_m` | 25–120 | 120 | İrtifa üst sınırı |
+| `camera_hfov_deg` | 20–120 | 84 | Kamera yatay görüş açısı; şerit aralığını belirler |
+
+## Arama motoru (`core/pso_engine.py`, `PSOConfig`)
+
+Önemli varsayılanlar:
+
+| Alan | Varsayılan | Anlamı |
+|---|---|---|
+| `search_strategy` | `"hybrid"` | `hybrid`: şerit tarama, yangın bilinince rüzgâr altı kıvılcım konisine dönüş · `lanes`: yalnız şerit · `adaptive`: en eski görülen hücreler |
+| `sensor_radius_m` | `None` | Bilinirse şerit aralığı buna göre; yoksa irtifa ve görüş açısından hesaplanır |
+| `ember_seconds` | 90 | Kıvılcım menzili = rüzgâr hızı × bu süre (150–800 m arasında) |
+| `ember_half_angle_deg` | 35 | Kıvılcım konisinin yarı açısı |
+| `coverage_cell_m` | 30 | "Son görülme" haritasının hücre boyu |
+| `candidate_merge_m` | 90 | Bu mesafedeki tespitler aynı olaya birleşir |
+| `inspect_altitude` | 35 | İnceleme irtifası |
+| `inspect_standoff_m` | 22 | İki inceleyicinin olaydan uzaklığı (karşı yanlarda) |
+| `inspect_alt_step_m` | 10 | İkinci inceleyicinin irtifa farkı |
+| `safe_drone_distance_m` | 30 | Hedef en az drone ayrılması |
+
+## Otopilot kontrolü (`hardware/mavlink_drone.py`)
+
+| Sabit | Değer | Anlamı |
+|---|---|---|
+| `HEARTBEAT_TIMEOUT_S` | 3 | Bu süre heartbeat gelmezse bağlantı kopmuş sayılır ve hub komutu keser |
+| `MIN_GPS_SATS` | 6 | Hub kontrolü için en az uydu |
+| `MIN_BATTERY` | 40 | Hub kontrolü için en az batarya (%) |
+
+Otopilot tarafında önerilen ayarlar (ArduPilot): `FS_GCS_ENABLE=1`, `FS_GCS_TIMEOUT=5`, uygun `RTL_ALT`, `FENCE_ENABLE=1`, her araçta farklı `SYSID_THISMAV`. Ayrıntı: [SAHA_KILAVUZU_TR.md](SAHA_KILAVUZU_TR.md).
+
+## Yangın modeli
+
+`best.pt` (YOLO, sınıflar: `fire`, `smoke`) depo kökünde olmalıdır. Yüklenemezse arayüz bunu bildirir ve kamera tespiti kapalı kalır.

@@ -1,5 +1,7 @@
 # Gerçek dünya uyumluluğu — 19 Eylül 2026
 
+> **26 Eylül 2026 güncellemesi:** Bu değerlendirmeden sonra ArduPilot Copter için operatör onaylı sürü kontrolü eklendi ve gerçek ArduPilot uçuş koduyla (SITL) üç araçla sınandı: uçuş öncesi kontroller, pilot devralması, bağlantı kaybında RTL. Aşağıdaki "fiziksel kontrol henüz açık değil" satırı o tarihe aittir. Güncel durum: [HUB_VALIDATION.md](HUB_VALIDATION.md), [SAFETY.md](SAFETY.md). Gerçek araçla saha kabulü hâlâ yapılmadı.
+
 ## Bulgular ve yapılan düzeltmeler
 
 Web `core/` + `hardware/` yolunu kullanıyordu. `src/` içindeki yeni güvenlik, haberleşme ve benchmark katmanlarının varlığı web kontrolünde çalıştıklarını kanıtlamıyordu. Mevcut 57 testin geçmesi bu ayrışmayı yakalamıyordu.

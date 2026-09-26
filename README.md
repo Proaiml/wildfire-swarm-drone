@@ -116,10 +116,18 @@ py -3.11 scripts/make_search_report.py               # tablolar ve grafikler
 
 ## Belgeler
 
-- [Saha kılavuzu](docs/SAHA_KILAVUZU_TR.md) · [Hub kullanımı](docs/HUB_GUIDE_TR.md) · [Drone entegrasyonu](docs/DRONE_INTEGRATION_TR.md)
-- [Arama karşılaştırması](docs/SWARM_COMPARISON_TR.md) · [Doğrulama raporu](docs/HUB_VALIDATION.md) · [Değişiklikler](CHANGELOG.md)
+| Konu | Belge |
+|---|---|
+| Sahada adım adım kullanım | [Saha kılavuzu](docs/SAHA_KILAVUZU_TR.md) |
+| Harita, olaylar, gönüllü katılımı | [Hub kullanımı](docs/HUB_GUIDE_TR.md) |
+| Marka bazında bağlantı, gönüllü köprüsü | [Drone entegrasyonu](docs/DRONE_INTEGRATION_TR.md) · [MAVLink kurulumu](docs/MAVLINK_SETUP_GUIDE.md) |
+| Uçuş güvenliği davranışları | [SAFETY](docs/SAFETY.md) |
+| Kurulum, SITL, sorun giderme | [Kurulum](docs/DEPLOYMENT.md) · [Sorun giderme](docs/TROUBLESHOOTING.md) |
+| API ve ayarlar | [API](docs/API.md) · [Yapılandırma](docs/CONFIGURATION.md) · [Yazılım güvenliği](docs/SECURITY.md) |
+| Yangın modeli ve konumlandırma | [Algılama hattı](docs/FIRE_DETECTION_PIPELINE.md) |
+| Arama karşılaştırması ve doğrulama | [Karşılaştırma](docs/SWARM_COMPARISON_TR.md) · [Doğrulama raporu](docs/HUB_VALIDATION.md) · [Testler](docs/TESTING.md) · [Değişiklikler](CHANGELOG.md) |
 
-Eski PDF'ler ve `src/` altındaki önceki benchmark raporları tarihsel çıktılardır; bu sürümün doğrulaması yukarıdaki tablolardır.
+Başında "Tarihsel belge" notu bulunan belgeler (`SYSTEM_ARCHITECTURE.md`, `PROJECT_AUDIT.md`, `REQUIREMENTS.md`, ADR'ler, eski benchmark raporları) ve kökteki PDF'ler önceki `src/` mimarisini anlatır; bu sürümün doğrulaması yukarıdaki tablolardır.
 
 ## PSO hareket denklemi
 

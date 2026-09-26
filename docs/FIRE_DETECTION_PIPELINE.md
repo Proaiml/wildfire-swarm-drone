@@ -30,8 +30,14 @@ Kamera görüntüsündeki her bir nesne sınırlayıcı kutusunun (bounding box)
 
 ---
 
-## 3. Uzamsal-Zamansal Kanıt Füzyonu (Fusion Engine)
+## 3. Tespitten olaya (web hub'ı)
 
-* **Zamansal Pencere:** $T = 8.0\text{ saniye}$, Yarı-Ömür Sönümlenmesi: $T_{half} = 4.0\text{ saniye}$.
-* **Asgari Ardışık Gözlem:** $N_{consecutive} \ge 3$ ve güven skoru $\ge 0.40$ olmadan alarm üretilmez.
-* **Uzamsal Kümeleme:** $50\text{ metre}$ içindeki gözlemler tek bir kümede birleştirilir.
+* **Güven eşiği:** Model 0.25 üstü güvenli kutuları döndürür (`core/fire_detector.py`).
+* **Aday olay:** Her tespitin yer konumu bir **aday olaya** dönüşür. 90 m içindeki tespitler aynı olaya birleşir; olayın güveni en yüksek tespitinki olur, tespit sayısı artar (`candidate_merge_m`).
+* **İnceleme:** Yeni aday olaya en yakın iki drone 30 saniye boyunca alçalıp bakar; diğerleri aramaya devam eder.
+* **Teyit operatördedir:** Hub hiçbir olayı kendi kendine teyit etmez. Operatör *Teyit et*, *Reddet* ya da *Tamamlandı* der. Teyit edilen olayın 100 m çevresinde yeni skor bastırılır; reddedilen ya da tamamlanan olayın yerinde 60 saniye sonra yeni bir aday oluşabilir.
+* **Kare ve konum aynı andan:** Konum hesabı, karenin çekildiği andaki drone pozuyla yapılır (dönüşte burun yönü değişse bile).
+
+**Ölçülen konum hatası:** Tatbikat kamerasında (yangın karede gerçek yerinde çizilir) 35–80 m irtifada ortanca 1–3 m, en kötü 17 m. ArduPilot SITL denemesinde gerçek uçuş dinamiğiyle 7.8–12.7 m. Gerçek kamerada kalibrasyon, gimbal açısı ve arazi eğimi bu hatayı artırır.
+
+Önceki `src/` mimarisindeki zamansal füzyon motoru (8 s pencere, en az 3 ardışık gözlem) web hub'ının kullandığı yol değildir.

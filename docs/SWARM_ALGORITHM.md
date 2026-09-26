@@ -1,3 +1,5 @@
+> **Tarihsel belge.** Bu belge önceki `src/` tabanlı mimariyi anlatır. Web hub'ı bugün `core/`, `hardware/` ve `web/` üzerinden çalışır. Güncel kullanım: [Saha kılavuzu](SAHA_KILAVUZU_TR.md) · güncel doğrulama: [HUB_VALIDATION](HUB_VALIDATION.md) · genel bakış: [README](../README.md). Buradaki başarım ve doğrulama ifadeleri güncel sürüm için kanıt sayılmaz.
+
 # PyreSwarm - Sürü Arama Algoritması ve Çoklu Çekici Dinamiği (Swarm Algorithm)
 
 ## 1. Algoritma Genel Mantığı
