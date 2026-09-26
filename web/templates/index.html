@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PyreSwarm • Ortak operasyon merkezi</title>
     <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="/static/css/style.css?v=4" />
+    <link rel="stylesheet" href="/static/css/style.css?v=6" />
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="/"
         ><span class="brand-icon">◈</span
         ><span>PYRESWARM<small>ORTAK OPERASYON MERKEZİ</small></span></a
-      ><span class="environment">SİMÜLASYON + PİLOT DESTEĞİ</span>
+      ><span class="environment" id="environment">SİMÜLASYON + PİLOT DESTEĞİ</span>
       <div class="connection" id="connection" role="status">Bağlanıyor…</div>
       <a href="/docs/DRONE_INTEGRATION_TR.md" target="_blank">Drone entegrasyon kılavuzu ↗</a>
     </header>
@@ -32,7 +32,7 @@
       <div class="controls">
         <button id="start" class="primary">▶ Başlat</button
         ><button id="pause">Ⅱ Duraklat</button
-        ><button id="rtl" class="danger">↩ Tüm simülasyon filosu RTL</button>
+        ><button id="rtl" class="danger">↩ Tüm filo RTL</button>
       </div>
     </section>
     <main>
@@ -54,7 +54,7 @@
         <div class="fleet-footer">
           <strong>Her drone için uygun katılım</strong>
           <p>
-            Simülasyon • Gönüllü pilot rehberliği • MAVLink telemetri gözlemi
+            Simülasyon • ArduPilot sürü kontrolü (MAVLink) • PX4 izleme ve RTL • Gönüllü pilot rehberliği
           </p>
         </div>
       </aside>
@@ -74,6 +74,12 @@
           ><button data-tool="scenario">◇ Tatbikat hedefi</button
           ><button id="base-settings">Üs</button>
         </div>
+        <form class="wind-control" id="wind-form">
+          <label>Rüzgâr <input name="speed" type="number" min="0" max="30" step="0.5" value="0" /> m/s</label>
+          <label>esiş yönü <input name="direction" type="number" min="0" max="359" step="5" value="0" />°</label>
+          <button type="submit" class="small">Uygula</button>
+          <span id="wind-status"></span>
+        </form>
         <details class="scenario-panel">
           <summary>Tatbikat: gizli / artçı yangınlar ve algoritma sonuçları</summary>
           <label><input id="truth-toggle" type="checkbox" /> Operatör gerçeklik katmanı</label>
@@ -82,6 +88,10 @@
           </label>
           <p>◇ Tatbikat hedefi düğmesini seçip haritaya tıklayın. 0 hemen, 120 iki dakika sonra tutuşur. PSO konumu sensör gözleminden öğrenir.</p>
           <div id="scenario-status" aria-live="polite"></div>
+          <table id="drill-table" class="drill-table" hidden>
+            <thead><tr><th>Hedef</th><th>Tür</th><th>Tutuşma</th><th>Tespit</th><th>Süre</th><th>Bulan</th></tr></thead>
+            <tbody></tbody>
+          </table>
           <button id="benchmark-results">Karşılaştırma sonuçlarını göster</button>
           <div id="benchmark-summary"></div><a href="/static/benchmark.html" target="_blank">Rotayı ve keşif anlarını tekrar izle ↗</a>
         </details>
@@ -95,6 +105,9 @@
           <span><i class="dot cyan"></i> Drone / uçuş izi</span
           ><span><i class="dot amber"></i> Şüpheli olay</span
           ><span><i class="dot red"></i> Kapalı alan</span
+          ><label
+            ><input type="checkbox" id="coverage-toggle" checked />
+            Son görülme</label
           ><label
             ><input type="checkbox" id="sectors-toggle" checked />
             Sektörler</label
@@ -145,15 +158,15 @@
             ×
           </button>
         </div>
-        <p class="dialog-note">
-          Gönüllü pilotlar gerçek telemetriyle katılır. Hub rota önerir; pilot
-          kendi drone’unun kontrolünü korur.
+        <p class="dialog-note" id="drone-type-note">
+          Simülasyon drone’u eğitim ve tatbikat içindir; gerçek drone’larla aynı
+          planlayıcıyla uçar.
         </p>
         <label
           >Katılım türü<select name="drone_type" id="drone-type">
             <option value="simulated">Simülasyon drone’u</option>
             <option value="volunteer">Gönüllü pilot / marka bağımsız</option>
-            <option value="mavlink">MAVLink — yalnızca telemetri</option>
+            <option value="mavlink">MAVLink otopilot (ArduPilot / PX4)</option>
           </select></label
         >
         <div class="form-grid">
@@ -218,11 +231,45 @@
               required
           /></label>
         </div>
-        <label id="mavlink-field" hidden
-          >MAVLink bağlantısı<input
-            name="connection_string"
-            value="udpin:127.0.0.1:14550"
-        /></label>
+        <div id="mavlink-field" hidden>
+          <p class="dialog-note">
+            Drone önce yalnızca <b>gözlenir</b>: hub hiçbir hareket komutu göndermez. Kartında uçuş
+            öncesi kontroller (GPS, EKF, ev konumu, batarya, bağlantı kaybı ayarı) yeşil olunca
+            <b>Hub kontrolüne al</b> ile sürüye katılır. Pilot kumandadan modu değiştirirse hub
+            kontrolü anında bırakır; hub bağlantısı koparsa otopilot kendi RTL'sini uygular.
+          </p>
+          <label
+            >MAVLink bağlantısı<input
+              name="connection_string"
+              value="udpin:0.0.0.0:14550"
+              list="mavlink-examples"
+          /></label>
+          <datalist id="mavlink-examples">
+            <option value="udpin:0.0.0.0:14550">Telemetri radyosu / QGC yönlendirmesi (UDP)</option>
+            <option value="tcp:127.0.0.1:5760">ArduPilot SITL (tools/sitl)</option>
+            <option value="COM3,57600">USB telemetri radyosu (Windows seri port)</option>
+            <option value="/dev/ttyUSB0,57600">USB telemetri radyosu (Linux seri port)</option>
+          </datalist>
+          <div class="form-grid">
+            <label
+              >Sistem kimliği (isteğe bağlı)<input
+                name="target_system"
+                type="number"
+                min="1"
+                max="255"
+                placeholder="aynı bağlantıda birden çok araç varsa"
+            /></label
+            ><label
+              >Kamera akışı (isteğe bağlı)<input
+                name="camera_url"
+                placeholder="rtsp://192.168.144.25:8554/main"
+            /></label>
+          </div>
+          <label class="inline"
+            ><input type="checkbox" name="synthetic_camera" /> Tatbikat sentetik kamerası
+            (SITL ile tatbikat; gerçek kameranın yerine geçmez)</label
+          >
+        </div>
         <div class="dialog-actions">
           <button type="button" data-close="drone-dialog">Vazgeç</button
           ><button class="primary" type="submit">Filoya ekle</button>
@@ -273,6 +320,6 @@
       </form>
     </dialog>
     <script src="/static/vendor/leaflet/leaflet.js"></script>
-    <script src="/static/js/dashboard.js?v=4"></script>
+    <script src="/static/js/dashboard.js?v=8"></script>
   </body>
 </html>

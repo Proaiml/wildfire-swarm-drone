@@ -1,4 +1,22 @@
-# Hub doğrulama raporu — 19 Eylül 2026
+# Hub doğrulama raporu
+
+## 26 Eylül 2026 — sürü kontrolü, hibrit arama, SITL
+
+| Kontrol | Sonuç | Kanıt |
+|---|---|---|
+| Otomatik testler | 118 test geçti (Windows, Python 3.11) | `py -3.11 -m pytest tests -q` |
+| Arayüz betiği | `node --check web/static/js/dashboard.js` geçti | — |
+| Arama karşılaştırması | 21 yöntem × 40 tohum × 2 senaryo = 1680 koşu, hata yok; ayarda kullanılmamış 241–280 tohumları | `artifacts/search_v2/final_*`, [karşılaştırma](SWARM_COMPARISON_TR.md) |
+| ArduPilot SITL, 3 araç | kontrol reddi (GPS/EKF/ev yokken), kalkış, 3/3 tatbikat yangını, pilot devralmasında 0.1 s'de bırakma, bağlantı kaybında 4.4 s'de RTL, iniş | `tools/sitl/sitl_swarm_trial.py`, `artifacts/sitl_trial/result.json` |
+| Arayüzden operatör akışı | 4 simülasyon + 3 SITL drone tek filoda; + Ekle → MAVLink, kontroller, Hub kontrolüne al, Başlat, tatbikat tablosu, Tüm filo RTL | README ekran görüntüleri |
+
+**Bu turda bulunan ve düzeltilen hatalar:** sunucu proje dışından başlatılınca simülasyon kamerası yangın görmüyordu (göreli dosya yolu); tatbikat kamerası yangını karede yerine koymuyor ve heading'i yok sayıyordu (46 m konum hatası, bir artçı kaçtı); `smoke.png` modelde hiç tespit üretmiyordu; kare ve GPS dönüşümü farklı anların pozunu kullanabiliyordu; iki inceleyici aynı noktaya iniyordu; rüzgâr ayarı açılışta uygulanmıyordu; tatbikat değerlendirmesi yakındaki başka bir yangının tespitini sayabiliyordu; eski hibrit arama rüzgârsız senaryoda şerit taramasının gerisinde kalıyordu.
+
+**Kanıt sınırı:** gerçek araçla uçuş, HIL, gerçek kamera kalibrasyonu, sahada YOLO doğruluğu ve PX4 sürü kontrolü yapılmadı.
+
+---
+
+## 19 Eylül 2026 (önceki sürüm)
 
 ## Sonuç
 

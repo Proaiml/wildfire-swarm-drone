@@ -1,13 +1,13 @@
 # Gerçek drone katılımı: bağlantı, görüntü, PSO ve kabul sınırları
 
-Araştırma tarihi: 20 Eylül 2026. **Bu sürüm gerçek drone telemetrisi ve zaman damgalı kamera verisini işleyebilen bir yer istasyonu/pilot rehberliği prototipidir. Üreticiden bağımsız otonom sürü uçuşu tamamlanmış veya sahada doğrulanmış değildir.** Marka/model/firmware/SDK eşleşmesi ve fiziksel kabul testleri olmadan “her drone tak-çalıştır” denemez. Aşağıdaki “üreticinin sağladığı yol” ile “bu depoda uygulanmış bağdaştırıcı” farklı sütunlardır.
+Araştırma tarihi: 20 Eylül 2026, güncelleme 26 Eylül 2026. **ArduPilot Copter araçları operatör onayı ve uçuş öncesi kontrollerle hub'ın sürü kontrolüne alınabilir; bu akış ArduPilot SITL ile (gerçek uçuş kodu, simüle araç) üç araçla sınandı. Gerçek araçla saha kabulü henüz yapılmadı.** Adım adım kullanım: [saha kılavuzu](SAHA_KILAVUZU_TR.md). Marka/model/firmware/SDK eşleşmesi ve fiziksel kabul testleri olmadan “her drone tak-çalıştır” denemez. Aşağıdaki “üreticinin sağladığı yol” ile “bu depoda uygulanmış bağdaştırıcı” farklı sütunlardır.
 
 ## Hangi drone, hangi bağlantı?
 
 | Araç ailesi | Üreticinin desteklediği yol | Bu depoda çalışan yol | Henüz uygulanmayan/doğrulanmayan |
 |---|---|---|---|
-| PX4 çalışan Pixhawk/uyumlu otopilot | MAVLink; MAVSDK veya ROS 2 Offboard | `hardware/mavlink_drone.py` ile telemetri gözlemi; bağımsız köprüyle gönüllü rehberliği | PX4 uçuş durumu/ACK/failsafe kabulü, SITL/HIL ve fiziksel sürü uçuşu |
-| ArduPilot Copter çalışan araç | MAVLink; Guided komutları | MAVLink telemetri; aynı ortak HTTP gözlem sözleşmesi | Guided kontrol yetkilendirmesi, ACK/komut zaman aşımı ve gerçek uçuş kabulü |
+| PX4 çalışan Pixhawk/uyumlu otopilot | MAVLink; MAVSDK veya ROS 2 Offboard | `hardware/mavlink_drone.py` ile telemetri gözlemi, RTL ve iniş komutu; bağımsız köprüyle gönüllü rehberliği | PX4 Offboard sürü kontrolü, SITL/HIL ve fiziksel sürü uçuşu |
+| ArduPilot Copter çalışan araç | MAVLink; Guided komutları | Gözlem → uçuş öncesi kontroller → operatör onayı → GUIDED kalkış ve 4 Hz hız komutlarıyla sürü; ACK, pilot devralması, bağlantı kaybında RTL (SITL ile sınandı) | Gerçek araçla saha kabulü |
 | DJI MSDK V5 destekli model + destekli kumanda | Android Mobile SDK V5; model/firmware desteği resmî sürüm tablosundan seçilir | Üretici uygulaması yazılırsa ortak HTTP gönüllü arayüzüne bağlanabilir | Bu depoda DJI Android uygulaması/bağdaştırıcısı yok; MAVLink diye eklemek çalışmaz |
 | DJI Pilot 2 / Dock Cloud API destekli donanım | DJI Cloud API | Henüz doğrudan bağdaştırıcı yok | Cloud API altyapısı, cihaz bağlama, MQTT/medya/kimlik işlemleri |
 | Parrot ANAFI, Thermal, USA, Ai, UKR, Chuck | Linux üzerinde Olympe; Sphinx üretici simülasyonu | Olympe köprüsü yazılırsa ortak HTTP arayüzü | Bu depoda Olympe adaptörü ve cihaz kabul testi yok |
@@ -66,9 +66,9 @@ Kişisel en iyi gözlem bilişsel terimi, paylaşılan iyi gözlem sosyal terimi
 
 **Henüz kanıtlanmayan:** farklı kamera/modeller arasında skor kalibrasyonu, en iyi drone'dan hız/irtifa parametrelerinin performans garantili transferi, dağıtık haberleşme, kopuk ağda ortak tutarlılık. Yüksek tek-kare güven puanı “en hızlı ve en güvenilir yangın bulucu” ile aynı ölçü değildir. Yayınlanan arama benchmark'ı bunları ölçtüğünü iddia etmez.
 
-## MAVLink gözlem kurulumu
+## MAVLink kurulumu
 
-Otopilotun telemetri çıkışını hub bilgisayarındaki kullanılmayan UDP porta yönlendirin. UI'da **MAVLink telemetri** seçip örneğin `udpin:127.0.0.1:14550` bağlantısını verin. Bu adres ancak gerçekten o porta yönlendirilmiş yerel telemetri için doğrudur. Ağdaki araç için router/seri ayarı gerekir. Birden fazla araçta sistem kimliği ve akış yönlendirmesi ayrı doğrulanmalıdır; aynı karışık bağlantıya rastgele araç kaydı açmayın.
+Otopilotun telemetri çıkışını hub bilgisayarındaki kullanılmayan UDP porta yönlendirin. UI'da **MAVLink otopilot** seçip örneğin `udpin:127.0.0.1:14550` bağlantısını verin. Bağlantı adresleri, uçuş öncesi kontroller ve önerilen otopilot ayarları için [saha kılavuzu](SAHA_KILAVUZU_TR.md). Bu adres ancak gerçekten o porta yönlendirilmiş yerel telemetri için doğrudur. Ağdaki araç için router/seri ayarı gerekir. Birden fazla araçta sistem kimliği ve akış yönlendirmesi ayrı doğrulanmalıdır; aynı karışık bağlantıya rastgele araç kaydı açmayın.
 
 Önce yerde gerçek heartbeat, poz, NED→ENU hız yönleri, batarya, disconnect ve reconnect gözlenir. Sonraki aşama üretici SITL'idir. [ArduPilot SITL kurulumu](https://ardupilot.org/dev/docs/setting-up-sitl-on-linux.html), [SITL kullanım örnekleri](https://ardupilot.org/dev/docs/using-sitl-for-ardupilot-testing.html), [MAVLink arayüzü](https://ardupilot.org/dev/docs/mavlink-commands.html)
 
@@ -80,9 +80,9 @@ Otopilotun telemetri çıkışını hub bilgisayarındaki kullanılmayan UDP por
 | HTTP köprü | Yeni poz+kare kabulü, eski/tekrar veri reddi, tek kare tek işlem | Otomatik sözleşme testleri var |
 | Gerçek model | Gerçek `best.pt` çağrıları, model hash'i, kaçırmaların kaydı | Fotoğraf tabanlı simülasyonda çalıştırıldı; hava görüntüsü doğrulaması değil |
 | Üretici SDK | Gerçek cihazdan telemetri+kare zaman eşleme | Model başına yapılmalı; hazır DJI/Parrot adaptörü yok |
-| SITL/HIL | GPS/EKF kaybı, komut ACK, setpoint kopması, pilot override, RTL, çoklu araç | Bu oturumda yapılmadı |
+| SITL/HIL | GPS/EKF hazır olmadan kontrol reddi, komut ACK, pilot override, hub bağlantı kaybında RTL, çoklu araç | ArduPilot Copter 4.5.7 SITL, 3 araç: `tools/sitl/sitl_swarm_trial.py`, `artifacts/sitl_trial/result.json`. HIL yapılmadı |
 | Kontrol sahası | Önce tek araç, sonra kontrollü çoklu araç; uçuş logları ve olay incelemesi | Yapılmadı |
 | Operasyon dağıtımı | Kimlik/rol, TLS, denetim kaydı, kalıcı görev verisi, yedeklilik | Tamamlanmadı; localhost'u internete açmak çözüm değil |
 | Yangın/SAR saha başarımı | Bağımsız gerçek veri, hedef bazlı recall, yanlış alarm/saat, algılama gecikmesi | Yangın için eksik; gerçek SAR modeli henüz yok |
 
-Bu eksikler giderilmeden acil olayda bağımsız otonom sürü kontrolü olarak kullanıma hazır değildir. Mevcut kodun yapılabilir işi yerel simülasyon, görüntü/telemetri toplama ve operatör gözetiminde pilot rehberliğidir. Fiziksel araç erişimi olmadan bu son aşamaları geçtiğimizi söylemek doğru olmaz.
+Kontrol sahası ve saha başarımı aşamaları tamamlanmadan sistem, operatör ve pilot gözetimi olmadan çalışan bağımsız bir otonom sürü olarak kullanılmamalıdır. Önerilen sıra: SITL (`SITL_BASLAT.bat`) → tek gerçek araç, açık alan, kumandası elinde pilot → iki araç → görev.

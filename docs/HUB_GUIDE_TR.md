@@ -2,9 +2,9 @@
 
 ## Çalışma biçimi
 
-`BASLAT.bat` uygulamayı yalnızca localhost üzerinde açar. Web arayüzünde yangın keşfi ve arama-kurtarma görevleri bulunur. Simülasyon filosu ile gönüllü pilot rehberliği aynı sektörel planlayıcıyı kullanır. Fiziksel MAVLink drone'ları gözlem amaçlıdır; bu sürüm fiziksel aracı arm etmez, kaldırmaz veya sürü uçuşuna otomatik katmaz.
+`BASLAT.bat` uygulamayı yalnızca localhost üzerinde açar. Web arayüzünde yangın keşfi ve arama-kurtarma görevleri bulunur. Simülasyon filosu ile gönüllü pilot rehberliği aynı sektörel planlayıcıyı kullanır. MAVLink otopilotları önce yalnızca gözlenir. ArduPilot Copter aracı, uçuş öncesi kontrollerin hepsi geçip operatör **Hub kontrolüne al** dediğinde GUIDED modunda sürüye katılır; PX4 aracı izlenir ve RTL/iniş komutu alır. Adım adım kullanım: [saha kılavuzu](SAHA_KILAVUZU_TR.md).
 
-Başlangıçtaki dört simülasyon drone'u havada bekleme senaryosudur. Yeni eklenen simülasyon drone'u yerde başlar; görev başlayınca kademeli kalkar. Düşük batarya, RTL ve iniş durumları görev başlat/duraklat işlemleriyle iptal edilmez.
+Başlangıçtaki dört simülasyon drone'u ve sonradan eklenenler üste, yerde bekler; görev başlayınca kademeli kalkar. Batarya görevden önce harcanmaz. Düşük batarya, RTL ve iniş durumları görev başlat/duraklat işlemleriyle iptal edilmez.
 
 ## Harita ve görev
 
@@ -59,7 +59,13 @@ GET `/api/volunteer/{id}/guidance`:
 
 `udpin:127.0.0.1:14550` gibi bağlantılar için kimlik benzersiz olmalıdır. Bağlantı hatası filoya başarılı kayıt olarak yansımaz. NED telemetri, uygulamanın Doğu-Kuzey-Yukarı eksenine çevrilir. `relative_alt` kalkış noktasına göre irtifadır; değişken arazide AGL değildir.
 
-SITL/HIL ve fiziksel uçuş testleri yapılmadan web üzerinden fiziksel kontrol açılmamıştır. PX4 Offboard, ArduPilot Guided, komut ACK, GPS/EKF sağlık, otopilot failsafe, bağlantı kopması, araç çakışması ve pilotun kontrolü geri alması ayrı kabul testleridir.
+Bağlanan otopilot **GÖZLEM** durumundadır; hub hareket komutu göndermez. Kartta uçuş öncesi kontroller (bağlantı, otopilot türü, GPS 3D fix ve en az 6 uydu, EKF, ev konumu, batarya en az %40, `FS_GCS_ENABLE`, üsse en fazla 5 km) listelenir. Hepsi geçince operatör **Hub kontrolüne al** der; ArduPilot Copter GUIDED moduna alınır, kollanır, arama irtifasına kalkar ve 4 Hz hız komutlarıyla sürüye katılır. Her komut ACK ile, her mod değişimi heartbeat ile doğrulanır.
+
+- Pilot kumandadan modu değiştirirse hub o aracı anında bırakır (**PİLOT DEVRALDI**).
+- Hub bağlantısı koparsa hub komutu keser; araç kendi GCS failsafe'i ile eve döner.
+- PX4 araçları bu sürümde yalnızca izlenir, RTL ve iniş komutu alır.
+
+Bu davranışlar ArduPilot Copter 4.5.7 SITL ile (gerçek uçuş kodu, simüle araç) üç araçlı sürüde sınandı: `tools/sitl/sitl_swarm_trial.py`, sonuçlar `artifacts/sitl_trial/result.json`. Gerçek araçla ilk uçuşlar tek araçla, açık alanda ve kumandası elinde bir pilotla yapılmalıdır.
 
 ## Sınırlar
 

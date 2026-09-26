@@ -36,8 +36,10 @@ def test_pso_gbest_sharing():
     # D2, D1'in kuzeydoğusundadır (lat ve lon daha büyük). Bu yüzden vx (doğu) ve vy (kuzey) pozitif olmalı
     assert vx > 0
     assert vy > 0
-    # Yangın yüksek skorlu olduğu için hedef irtifa alçalmalı (inspect_altitude)
-    assert target_alt == pso.config.inspect_altitude
+    # Yangın yüksek skorlu olduğu için hedef irtifa alçalmalı (inspect_altitude); D1 ikinci
+    # inceleyicidir ve dikey ayrılma için bir kademe yukarıda kalır
+    assert target_alt == pso.config.inspect_altitude + pso.config.inspect_alt_step_m
+    assert target_alt < pso.config.search_altitude
 
 
 def test_pso_collision_avoidance():

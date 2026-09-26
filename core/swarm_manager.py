@@ -30,6 +30,17 @@ from hardware.mavlink_drone import MAVLinkDrone
 from hardware.volunteer_bridge import VolunteerDrone
 
 
+def hub_controls(drone: BaseDrone) -> bool:
+    """Hub bu drone'a hareket komutu verebilir mi?
+    Simülasyon: evet. MAVLink: yalnızca operatör kontrolü verdiyse ve bağlantı canlıysa.
+    Gönüllü köprüsü: hayır (yalnızca pilot rehberliği)."""
+    if isinstance(drone, SimulatedDrone):
+        return True
+    if isinstance(drone, MAVLinkDrone):
+        return drone.control_enabled and drone.link_ok()
+    return False
+
+
 class SwarmManager:
     """
     Sürü Drone Orkestrasyon Merkezi.
@@ -179,13 +190,17 @@ class SwarmManager:
     def start_mission(self):
         """Tüm sürü için otonom PSO yangın arama görevini başlatır."""
         with self._lock:
-            if not any(isinstance(d, SimulatedDrone) or (isinstance(d, VolunteerDrone) and time.time()-d.telemetry.last_heartbeat <= 3) for d in self.drones.values()):
-                raise ValueError("Bu sürümde otonom kontrol yalnızca simülasyon için doğrulanmıştır")
+            if not any(hub_controls(d) or (isinstance(d, VolunteerDrone) and time.time()-d.telemetry.last_heartbeat <= 3) for d in self.drones.values()):
+                raise ValueError("Göreve katılacak drone yok: simülasyon ekleyin ya da bir MAVLink drone'u "
+                                 "uçuş öncesi kontrolden geçirip hub kontrolüne alın")
             if self.is_mission_active:
                 return
             self.is_mission_active = True
             self.mission_start_time = time.time()
             for drone in self.drones.values():
+                if isinstance(drone, MAVLinkDrone) and hub_controls(drone):
+                    self._launch_autopilot(drone)
+                    continue
                 if not isinstance(drone, SimulatedDrone) or drone.telemetry.battery_percentage <= 20:
                     continue
                 if drone.mode in (DroneMode.RTL, DroneMode.LANDING):
@@ -197,6 +212,27 @@ class SwarmManager:
                     drone.telemetry.mode = drone.mode
             print("[SwarmManager] Otonom PSO yangın arama devriyesi başlatıldı!")
 
+    def _launch_autopilot(self, drone: "MAVLinkDrone"):
+        """Hub kontrolündeki gerçek otopilotu göreve sokar: havadaysa hemen, yerdeyse kalkışla."""
+        if drone.telemetry.is_in_air and drone.flight_mode == "GUIDED":
+            drone.control_state = "mission"
+            return
+        if drone.control_state == "takeoff":
+            return
+        target = min(drone.capabilities["search_altitude_m"], drone.capabilities["max_altitude_m"])
+
+        def worker():
+            if not drone.takeoff(target_alt=target):
+                self.loop_error = f"{drone.drone_id}: kalkış yapılamadı - " + "; ".join(drone.status()["messages"][-2:])
+                return
+            end = time.time() + 90
+            while time.time() < end and drone.control_enabled and drone.control_state == "takeoff":
+                if drone.telemetry.alt >= target * 0.9:
+                    drone.control_state = "mission"
+                    return
+                time.sleep(0.25)
+        threading.Thread(target=worker, daemon=True, name=f"{drone.drone_id}-takeoff").start()
+
     def pause_mission(self):
         """Görevi duraklatır (drone'lar havada sabit kalır / loiter)."""
         with self._lock:
@@ -204,6 +240,9 @@ class SwarmManager:
                 self.mission_elapsed += time.time()-self.mission_start_time
             self.is_mission_active = False
             for drone in self.drones.values():
+                if isinstance(drone, MAVLinkDrone) and hub_controls(drone):
+                    drone.send_velocity(0.0, 0.0, 0.0)
+                    continue
                 if not isinstance(drone, SimulatedDrone) or drone.mode in (DroneMode.RTL, DroneMode.LANDING):
                     continue
                 drone.send_velocity(0.0, 0.0, 0.0)
@@ -219,6 +258,9 @@ class SwarmManager:
             self.is_mission_active = False
             for drone in self.drones.values():
                 if isinstance(drone, SimulatedDrone):
+                    drone.return_to_launch()
+                elif isinstance(drone, MAVLinkDrone) and (drone.control_enabled or
+                                                          drone.control_state in ("takeoff", "mission", "hold")):
                     drone.return_to_launch()
             print("[SwarmManager] Tüm sürüye RTL komutu iletildi.")
 
@@ -312,8 +354,8 @@ class SwarmManager:
         """Bireysel drone için acil üsse dönüş (RTL) emri verir."""
         with self._lock:
             if drone_id in self.drones:
-                if not isinstance(self.drones[drone_id], SimulatedDrone):
-                    raise ValueError("Fiziksel uçuş kontrolü doğrulanmadı; yerel pilot/otopilot kontrolünü kullanın")
+                if not isinstance(self.drones[drone_id], (SimulatedDrone, MAVLinkDrone)):
+                    raise ValueError("Bu drone'a bağlantı yok (gönüllü köprüsü); dönüşü pilot kendi kumandasından yapar")
                 self.drones[drone_id].return_to_launch()
                 print(f"[SwarmManager] {drone_id} için bireysel RTL komutu verildi.")
                 return True
@@ -323,8 +365,8 @@ class SwarmManager:
         """Bireysel drone için iniş emri verir."""
         with self._lock:
             if drone_id in self.drones:
-                if not isinstance(self.drones[drone_id], SimulatedDrone):
-                    raise ValueError("Fiziksel uçuş kontrolü doğrulanmadı; yerel pilot/otopilot kontrolünü kullanın")
+                if not isinstance(self.drones[drone_id], (SimulatedDrone, MAVLinkDrone)):
+                    raise ValueError("Bu drone'a bağlantı yok (gönüllü köprüsü); inişi pilot kendi kumandasından yapar")
                 self.drones[drone_id].land()
                 print(f"[SwarmManager] {drone_id} için iniş komutu verildi.")
                 return True
@@ -334,12 +376,43 @@ class SwarmManager:
         """Bireysel drone için kalkış emri verir."""
         with self._lock:
             if drone_id in self.drones:
-                if not isinstance(self.drones[drone_id], SimulatedDrone):
-                    raise ValueError("Fiziksel uçuş kontrolü doğrulanmadı; yerel pilot/otopilot kontrolünü kullanın")
+                if not hub_controls(self.drones[drone_id]):
+                    raise ValueError("Önce uçuş öncesi kontrolden geçirip hub kontrolüne alın")
                 self.drones[drone_id].takeoff(target_alt=alt)
                 print(f"[SwarmManager] {drone_id} için kalkış komutu verildi.")
                 return True
             return False
+
+    def preflight(self, drone_id: str):
+        drone = self.drones.get(drone_id)
+        if not isinstance(drone, MAVLinkDrone):
+            raise ValueError("Uçuş öncesi kontrol yalnızca MAVLink otopilotları içindir")
+        checks = drone.preflight()
+        if drone.telemetry.lat or drone.telemetry.lon:
+            distance = math.hypot((drone.telemetry.lat-self.center_lat)*111139,
+                                  (drone.telemetry.lon-self.center_lon)*111139*math.cos(math.radians(self.center_lat)))
+            checks.append({"id": "distance", "label": "Üsse en fazla 5 km", "ok": distance <= 5000,
+                           "detail": f"{distance:.0f} m"})
+        return checks
+
+    def set_drone_control(self, drone_id: str, enable: bool):
+        """Operatör onayıyla bir otopilotu hub kontrolüne alır ya da bırakır."""
+        drone = self.drones.get(drone_id)
+        if not isinstance(drone, MAVLinkDrone):
+            raise ValueError("Hub kontrolü yalnızca MAVLink otopilotları içindir")
+        if not enable:
+            drone.release_control()
+            return {"control_enabled": False, "checks": drone.preflight()}
+        checks = self.preflight(drone_id)
+        failed = [c["label"] for c in checks if not c["ok"]]
+        if failed:
+            return {"control_enabled": False, "checks": checks, "failed": failed}
+        drone.grant_control()
+        with self._lock:
+            self.pso.capabilities[drone_id] = drone.capabilities
+            if self.is_mission_active:
+                self._launch_autopilot(drone)
+        return {"control_enabled": drone.control_enabled, "checks": checks}
 
     @synchronized
     def set_wind(self, speed_ms: float, direction_deg: float):
@@ -440,7 +513,8 @@ class SwarmManager:
     def add_scenario_target(self, lat, lon, confidence=.95, delay_seconds=0):
         target = {"id": f"scenario_{len(self.scenario_targets)+1}", "lat": lat, "lon": lon,
                   "confidence": confidence, "kind": self.mission_kind,
-                  "ignition_s": self.pso.elapsed_seconds + delay_seconds, "active": False}
+                  "ignition_s": self.pso.elapsed_seconds + delay_seconds, "active": False,
+                  "aftershock": delay_seconds > 0, "detected_s": None, "delay_s": None}
         self.scenario_targets.append(target)
         self._ignite_scenario_targets()
         return copy.deepcopy(target)
@@ -458,6 +532,25 @@ class SwarmManager:
             if isinstance(d, SimulatedDrone):
                 d.fire_targets = list(self.environmental_fires)
         # Hidden scenario truth is never published as an incident.
+
+    DRILL_MATCH_M = 50.0
+
+    def _score_drill(self, lat, lon, drone_id):
+        """Tatbikat değerlendirmesi: kamera tahmini yalnızca kendisine EN YAKIN aktif gizli hedefe, o da
+        50 m içindeyse sayılır (yan yana iki yangından biri diğerinin tespitiyle "bulunmuş" sayılmaz).
+        Yalnızca operatörün sonuç tablosu içindir; planlayıcı gizli hedefleri hiçbir zaman görmez."""
+        best = None
+        for target in self.scenario_targets:
+            if target["active"] and target["kind"] == self.mission_kind:
+                d = math.hypot((target["lat"]-lat)*111139, (target["lon"]-lon)*111139*math.cos(math.radians(lat)))
+                if best is None or d < best[0]:
+                    best = (d, target)
+        if best and best[0] <= self.DRILL_MATCH_M and best[1].get("detected_s") is None:
+            d, target = best
+            target["detected_s"] = round(self.pso.elapsed_seconds, 1)
+            target["delay_s"] = round(target["detected_s"] - target["ignition_s"], 1)
+            target["detected_by"] = drone_id
+            target["error_m"] = round(d, 1)
 
     @synchronized
     def record_candidate(self, lat, lon, confidence, source="operator_report"):
@@ -493,6 +586,8 @@ class SwarmManager:
                     continue
                 if isinstance(drone, VolunteerDrone):
                     t, frame = drone.get_camera_observation()
+                elif isinstance(drone, (SimulatedDrone, MAVLinkDrone)):
+                    frame = drone.get_camera_frame(pose=t)      # kare ve GPS dönüşümü aynı pozdan
                 else:
                     frame = drone.get_camera_frame()
                 if frame is None:
@@ -514,6 +609,8 @@ class SwarmManager:
                             score = max(score, confidence)
                 import cv2
                 label = "SIMULATED CAMERA / " if isinstance(drone, SimulatedDrone) else "CAMERA / "
+                if isinstance(drone, MAVLinkDrone) and drone.camera_source is not None:
+                    label = "AUTOPILOT + SYNTHETIC DRILL CAMERA / "
                 label += "FIRE" if kind == "fire" else "SAR SYNTHETIC SENSOR"
                 cv2.rectangle(annotated, (0,440), (640,480), (15,22,29), -1)
                 cv2.putText(annotated, label, (10, 465), cv2.FONT_HERSHEY_SIMPLEX, .5, (255,255,255), 1)
@@ -534,6 +631,7 @@ class SwarmManager:
                     for lat, lon, confidence in observed:
                         if not self.geofence_mgr.is_point_inside(lat, lon, t.alt)[0]:
                             self.record_candidate(lat, lon, confidence, "simulation" if isinstance(drone, SimulatedDrone) else "camera_estimate")
+                            self._score_drill(lat, lon, drone_id)
                     drone.telemetry.pbest_score = p.pbest_fitness
                     drone.telemetry.detections_count = p.total_detections
             except Exception as exc:
@@ -553,6 +651,13 @@ class SwarmManager:
                 p.vx, p.vy, p.vz = t.vx, t.vy, t.vz
             if isinstance(drone, SimulatedDrone) and t.is_in_air and drone.mode == DroneMode.MISSION_PSO:
                 active.add(drone_id)
+            if isinstance(drone, MAVLinkDrone):
+                if drone.control_enabled and not drone.link_ok():
+                    # Bağlantı koptu: hub susar, otopilotun kendi failsafe'i (GCS kaybı -> RTL) devrededir
+                    drone.control_enabled = False
+                    drone.control_state = "lost"
+                elif hub_controls(drone) and t.is_in_air and drone.control_state == "mission":
+                    active.add(drone_id)
             if isinstance(drone, VolunteerDrone):
                 if time.time()-t.last_heartbeat <= 3 and t.battery_percentage > 20 and t.alt > 1:
                     active.add(drone_id)
@@ -628,19 +733,24 @@ class SwarmManager:
                 "detections_count": t.detections_count,
                 "is_armed": t.is_armed,
                 "is_in_air": t.is_in_air,
-                "role": (self.pso.roles.get(d_id, "standby") if self.is_mission_active and d.mode == DroneMode.MISSION_PSO else "standby") if isinstance(d, SimulatedDrone) else ("pilot_advisory" if isinstance(d, VolunteerDrone) else "observer"),
+                "role": (self.pso.roles.get(d_id, "standby") if self.is_mission_active and d.mode == DroneMode.MISSION_PSO else "standby") if hub_controls(d) else ("pilot_advisory" if isinstance(d, VolunteerDrone) else "observer"),
                 "waypoint": self.pso.waypoints.get(d_id),
                 "telemetry_age_s": round(max(0, time.time()-t.last_heartbeat), 1) if t.last_heartbeat else None,
                 "safety_hold": getattr(d, "safety_hold", False),
-                "control_enabled": isinstance(d, SimulatedDrone),
+                "control_enabled": hub_controls(d),
+                "autopilot": d.status() if isinstance(d, MAVLinkDrone) else None,
+                "preflight": self.preflight(d_id) if isinstance(d, MAVLinkDrone) and not d.control_enabled else None,
                 "capabilities": dict(d.capabilities),
                 "sector": self.pso.sectors.get(d_id)
             }
 
+        autopilots = [d for d in self.drones.values() if isinstance(d, MAVLinkDrone) and d.control_enabled]
         return {
             "mission_kind": self.mission_kind,
-            "execution_mode": "simulation",
-            "readiness": {"physical_flight_enabled": False, "fire_model_loaded": self.detector.model is not None,
+            "execution_mode": "autopilot" if autopilots else "simulation",
+            "search_strategy": self.pso.config.search_strategy,
+            "coverage": self.pso.coverage_snapshot(),
+            "readiness": {"physical_flight_enabled": bool(autopilots), "fire_model_loaded": self.detector.model is not None,
                           "sar_person_model_loaded": False, "control_error": self.loop_error},
             "is_mission_active": self.is_mission_active,
             "mission_elapsed_seconds": int(self.mission_elapsed + (time.time()-self.mission_start_time if self.is_mission_active else 0)),

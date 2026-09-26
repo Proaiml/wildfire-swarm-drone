@@ -149,8 +149,11 @@ def test_evidence_does_not_collapse_entire_swarm(manager):
     for i in range(4):add_sim(manager,f'D{i}',37+i*.001,28+i*.001)
     manager.record_candidate(37,28,.9)
     manager.start_mission();manager.tick()
-    assert list(manager.pso.roles.values()).count('inspect')==2
-    assert list(manager.pso.roles.values()).count('search')==2
+    roles=list(manager.pso.roles.values())
+    assert roles.count('inspect')==2
+    # the rest keeps searching: lane sweep, plus (with wind) one drone on the downwind ember patrol
+    assert roles.count('search')+roles.count('ember')==2
+    assert roles.count('search')>=1
 
 def test_capability_weighted_sectors_partition_aoi():
     p=PSOEngine();p.set_aoi(37,37.01,28,28.01)
@@ -214,6 +217,10 @@ def test_api_volunteer_lifecycle(monkeypatch,manager):
 def test_mavlink_velocity_mapping_and_land():
     from hardware.mavlink_drone import MAVLinkDrone, mavutil
     d=MAVLinkDrone('M');d.master=Mock()
+    # without operator-granted control the hub never moves an autopilot
+    assert d.send_velocity(2,3,4,5) is False
+    d.master.mav.set_position_target_local_ned_send.assert_not_called()
+    d.autopilot,d.flight_mode,d.control_enabled='ardupilot','GUIDED',True
     d.send_velocity(2,3,4,5)
     args=d.master.mav.set_position_target_local_ned_send.call_args.args
     assert args[8:11]==(3,2,-4)

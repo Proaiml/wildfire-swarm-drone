@@ -1,76 +1,130 @@
-# PyreSwarm — ortak yangın keşfi ve arama-kurtarma merkezi
+# PyreSwarm — drone sürüsüyle yangın ve artçı yangın arama merkezi
 
-PyreSwarm, farklı kapasitedeki drone'ların arama sektörlerini paylaşan bir web görev merkezidir. Bu sürüm **simülasyon uçuşunu**, **gerçek telemetriye dayalı gönüllü pilot rehberliğini** ve **MAVLink telemetri gözlemini** destekler. Fiziksel otonom sürü uçuşu doğrulanmış veya etkin değildir.
+PyreSwarm, farklı marka ve kapasitedeki drone'ları tek bir sürüde toplayan bir yer istasyonudur. Operatör arama alanını ve rüzgârı girer, drone'unu bağlar, **Başlat** der; sürü alanı kamera erişimine göre paylaşır, kamera görüntüsündeki yangını bulur ve rüzgârın kıvılcım taşıdığı yöne, artçı yangınların çıkacağı yere döner.
+
+![Operasyon ekranı](docs/figures/ui_operasyon.png)
+
+| Katılım | Hub ne yapar |
+|---|---|
+| **ArduPilot Copter** (MAVLink: telemetri radyosu, ağ, SITL) | Önce izler. Uçuş öncesi kontroller geçip operatör **Hub kontrolüne al** deyince GUIDED modunda kaldırır ve sürüyle uçurur. |
+| **PX4** (MAVLink) | İzler, haritada gösterir, RTL / iniş komutu verir. |
+| **Başka marka / SDK köprüsü** | Gerçek telemetri ve kamera karesini alır, pilota yön-hız-irtifa önerir. Drone'u pilot uçurur. |
+| **Simülasyon** | Aynı planlayıcıyla uçan eğitim ve tatbikat drone'ları. |
+
+## Sonuçlar
+
+### Yangını ve artçıları ne kadar hızlı buluyor?
+
+Aynı 4 drone, 800 × 800 m alan, 10 dakika, 40 m menzilli ve %20 kaçıran bir test sensörü. Her senaryoda 2 yangın başta, 2 artçı yangın 3. ve 6. dakikada tutuşur. Yangınların yeri hiçbir yönteme verilmez. Yöntem ayarları 101–120 tohumlarında yapıldı; aşağıdaki sayılar ayar sırasında **hiç kullanılmamış 241–280 tohumlarıdır** (her senaryoda 40 × 21 yöntem = 840 koşu). Kaçırılan yangın 600 s gecikme sayılır, ortalamadan atılmaz.
+
+**Rüzgâr altı artçı yangınlar** (5 m/s rüzgâr, artçılar ilk yangının 150–450 m rüzgâr altında):
+
+| Yöntem | İlk yangın (s) | Bulunan | Artçı bulunan | Artçı tespit süresi (s) | Artçıların yarısı (medyan, s) | 1 dk içinde bulunan artçı |
+|---|---:|---:|---:|---:|---:|---:|
+| **PyreSwarm hibrit (varsayılan)** | 70.7 | **%99.4** | **%98.8** | **75.5** | **54** | **%54** |
+| Şerit tarama (sensöre uygun aralık) | 70.7 | %93.1 | %86.2 | 133.6 | 125 | %36 |
+| En iyi kütüphane yöntemi (DE, MEALPY) | 68.9 | %91.9 | %83.8 | 139.1 | 128 | %34 |
+| Önceki yayımlanan sürüm | 73.3 | %85.6 | %85.0 | 120.4 | 94 | %30 |
+| Rastgele hedef | 118.3 | %70.6 | %52.5 | 196.3 | 226 | %25 |
+
+**Rastgele konumlu yangınlar** (rüzgâr yok): hibrit, şerit taramayla aynıdır ve en iyi kütüphane yöntemiyle berabere kalır: %96.9 bulunan, artçıların %95.0'i, ortalama gecikme 128.9 s (DO: %96.9, %93.8, 128.5 s). Önceki sürüm %81.9 bulmuştu.
+
+![Karşılaştırma](docs/figures/search_v2_comparison.png)
+
+![Zamana göre bulunan yangın oranı](docs/figures/search_v2_cdf.png)
+
+Ne işe yarıyor: rüzgâr yokken şeritleri tekrar etmek en hızlı yoldur; hibrit de öyle yapar. Bir yangın bulunduğunda sektörünü bir kez taramış drone'lar rüzgâr altındaki kıvılcım konisine döner; artçı yangın orada çıktığında zaten yakındadırlar. 21 yöntemin tam tabloları, tüm koşular ve yöntem: [docs/SWARM_COMPARISON_TR.md](docs/SWARM_COMPARISON_TR.md), `artifacts/search_v2/final_*`.
+
+### Gerçek ArduPilot uçuş koduyla (SITL) üç drone'luk sürü
+
+ArduCopter 4.5.7 SITL: uçuş kodu gerçek, araç ve GPS simüle. Hub her aracı ayrı MAVLink bağlantısıyla sürdü; tatbikat kamerası gizli yangınları karede gerçek yerinde çizdi, yangın modeli (`best.pt`) gerçekten çalıştı.
+
+| Adım | Sonuç |
+|---|---|
+| Bağlantı | 3/3 araç, sistem kimliği 1-3 |
+| GPS/EKF hazır olmadan kontrol isteği | **Reddedildi** (GPS, EKF, ev konumu); o ana kadar hiçbir hareket komutu gönderilmedi |
+| Uçuş öncesi kontrollerin geçmesi | 42 s (GPS fix, EKF, ev konumu) |
+| Kalkış (GUIDED + kollama + kalkış) | 60 m arama irtifası ~30 s |
+| 1. yangın | 70.8 s'de bulundu, konum hatası 7.8 m |
+| 2. yangın | 199.3 s'de bulundu, konum hatası 10.3 m |
+| Artçı yangın (120. s'de tutuşur, rüzgâr altında) | tutuşmadan 156.4 s sonra bulundu, konum hatası 12.7 m |
+| Drone'lar arası en az yatay mesafe | arama ve incelemede 72.9 m (kalkışta, 25 m aralı kalkış noktalarından: 24.8 m) |
+| Pilot kumandadan mod değiştirdi (LOITER) | Hub aracı **0.1 s** içinde bıraktı, komut göndermeyi kesti |
+| Hub bağlantısı koptu | Otopilot **4.4 s** sonra kendi başına **RTL** yaptı |
+| Kalan araçlara RTL | 96 s içinde indiler |
+
+![SITL sürü izleri](docs/figures/sitl_swarm_tracks.png)
+
+Aynı akış arayüzden de denendi: 4 simülasyon drone'u ve **+ Ekle → MAVLink otopilot** ile eklenen 3 ArduPilot SITL drone'u tek filoda, 5 m/s rüzgâr, 4 gizli yangın. Kontroller yeşile dönünce üç otopilot hub kontrolüne alındı; ilk yangın 101 s'de, rüzgâr altındaki artçı yangın **tutuşmadan 65 s sonra** bir ArduPilot drone'u tarafından bulundu, dört yangının dördü de bulundu. *Tüm filo RTL* sonrası yedi drone 110 s içinde indi.
+
+![Karışık filo: otopilot kartları](docs/figures/ui_operasyon_filo.png)
+
+Kendi bilgisayarınızda: `SITL_BASLAT.bat` (Docker gerekir), sonra `py -3.11 tools/sitl/sitl_swarm_trial.py`. Sonuç: `artifacts/sitl_trial/result.json`.
 
 ## Başlatma
 
-Windows: `BASLAT.bat` veya proje dizininde:
+Windows'ta `BASLAT.bat` ya da:
 
 ```powershell
 py -3.11 -m pip install -r requirements.txt
 py -3.11 run.py
 ```
 
-Arayüz: http://127.0.0.1:8000. Sunucu varsayılan olarak yalnızca bu bilgisayarda dinler. Mevcut `.venv` eksik olabilir; bu çalışmada doğrulanan ortam Windows üzerindeki Python 3.11'dir.
+Arayüz: http://127.0.0.1:8000 (yalnızca bu bilgisayarda dinler).
 
-## Görev akışı
+## Drone'unu getir, sürüye kat
 
-1. **Yangın keşfi** veya **Arama ve kurtarma** seçin. Mod değiştirmeden önce duraklatın; eski modun olayları temizlenir. Gerekliyse önce rapor indirin.
-2. Arama alanını iki köşeyle belirleyin; yasak/göl alanını en az üç köşeyle çizip tamamlayın.
-3. Filoya drone eklerken hız, arama irtifası, azami irtifa ve kamera görüşünü tanımlayın.
-4. Başlatın. Kapasite ağırlıklı sektörlerde sürekli tarama yapılır; pozitif kanıt en fazla iki drone'a inceleme görevi verir. İnceleme 30 saniye ile sınırlıdır; kalan filo taramaya devam eder.
-5. Şüpheli olayı operatör teyit eder, reddeder veya tamamlar. Alanı arama dışına almak ayrı işlemdir.
-6. **Tatbikat hedefi** sensör tarafından görülene kadar gizlidir. **İhbar** operatörün bilinen bir konum bildirimidir; otomatik doğrulama değildir.
+1. **+ Ekle → MAVLink otopilot.** Bağlantı: `COM3,57600` (telemetri radyosu), `udpin:0.0.0.0:14550` (ağ / Wi-Fi / yer istasyonu yönlendirmesi) ya da `tcp:127.0.0.1:5760` (SITL). Aynı bağlantıda birden çok araç varsa sistem kimliğini (`SYSID_THISMAV`) yazın.
+2. Kart **GÖZLEM** rozetiyle gelir; hub hareket komutu göndermez. Uçuş öncesi kontroller kartta tek tek yeşile döner: bağlantı, otopilot, GPS 3D fix + 6 uydu, EKF, ev konumu, batarya %40, bağlantı kaybında RTL (`FS_GCS_ENABLE`), üsse en fazla 5 km.
+3. **Hub kontrolüne al.** Görev çalışıyorsa drone kalkar ve sürüye katılır; çalışmıyorsa **▶ Başlat** ile birlikte kalkar.
 
-## Gerçek katılımın sınırları
+Adım adım saha kullanımı, önerilen otopilot ayarları ve acil durum tablosu: **[docs/SAHA_KILAVUZU_TR.md](docs/SAHA_KILAVUZU_TR.md)**. Marka bazında bağlantı yolları: [docs/DRONE_INTEGRATION_TR.md](docs/DRONE_INTEGRATION_TR.md).
 
-| Katılım | Bu sürümdeki davranış |
+## Güvenlik modeli
+
+| Durum | Davranış |
 |---|---|
-| Simülasyon | İvme/hız sınırlı hareket, sektör tarama, bilinen poligonlardan dolanma, RTL/iniş, basit batarya modeli |
-| Gönüllü / herhangi bir marka | Harici köprü gerçek konum gönderir; hub pilota rota, hız ve irtifa önerir. Eski telemetriyle yönlendirme verilmez. |
-| MAVLink | PX4/ArduPilot bağlantı ve telemetri sürücüsü vardır. Webden fiziksel uçuş komutları kapalıdır. |
-| DJI ve diğer kapalı ekosistemler | Üretici SDK'sına uygun köprü gerekir; evrensel tak-çalıştır bağlantı mevcut değildir. |
-| Yangın algılama | `best.pt`: fire/smoke. Örnek görüntü çıkarımı test edildi; saha doğruluğu ölçülmedi. |
-| Arama-kurtarma | Ayrı görev, operatör ihbarı ve sentetik kişi sensörü. Gerçek insan/termal algılama modeli henüz bağlı değildir. |
+| Kontroller geçmeden | Kontrol isteği reddedilir, eksik kontrol adıyla gösterilir |
+| Her komut | Otopilottan ACK beklenir; mod değişimi heartbeat ile doğrulanır |
+| Pilot modu değiştirir | Hub o aracı anında bırakır (**PİLOT DEVRALDI**), tekrar katmak operatör kararıdır |
+| Hub bilgisayarı / bağlantı gider | Hub komutu keser; otopilot kendi GCS failsafe'iyle eve döner |
+| İki drone aynı olayı inceler | Olayın karşı yanlarında (~44 m ara) ve farklı irtifada (35 / 45 m) durur |
+| Yasak bölge / göl | Rotalar etrafından planlanır, içinden geçilmez |
+| Olay teyidi | Hub hiçbir olayı kendi teyit etmez; operatör teyit eder ya da reddeder |
 
-Drone'un uçuş izinin veya kamera görüşünün hesaplanması, alanın güvenilir şekilde aranıp temizlendiğini kanıtlamaz. PSO'nun ham kamera skorunu yükseltmesi de gerçek tespit kalitesinin arttığını kanıtlamaz. Bu sürümde hız/irtifa kapasiteye göre seçilir; otomatik öğrenilmiş en iyi uçuş profili iddiası yoktur.
+## Tatbikat
+
+**◇ Tatbikat hedefi** ile haritaya gizli yangın koyun, isterseniz gecikmeli (artçı) tutuşsun. Planlayıcı hedefin yerini hiç görmez; yalnızca kamera görürse olay oluşur. Tatbikat tablosu her hedef için tutuşma anını, tespit anını ve **tespit süresini** gösterir. Gerçek otopilotlarla tatbikat: drone'u eklerken **Tatbikat sentetik kamerası** kutusunu işaretleyin.
 
 ## Doğrulama
 
 ```powershell
-py -3.11 -m pytest tests -q
-py -3.11 scripts/validate_hub.py
+py -3.11 -m pytest tests -q                         # 118 test
 node --check web/static/js/dashboard.js
+py -3.11 scripts/compare_swarm_search.py --families all --scenario spotting --seeds 241 242 243
+py -3.11 scripts/make_search_report.py               # tablolar ve grafikler
 ```
 
-Güncel sonuçlar ve sınırlar: [doğrulama raporu](docs/HUB_VALIDATION.md).
+## Sınırlar
 
-600 saniyelik deterministik SAR simülasyonunda dört drone, iki gizli hedef ve bir kapalı alan kullanıldı. Bu senaryo gerçek kişi algılama veya uçuş doğrulaması değildir. Ölçümler yeniden üretilebilir: `artifacts/hub_validation/scenario.json`.
+- Sayılar simülasyon ve SITL sonuçlarıdır. **Gerçek araçla saha kabulü yapılmadı.** İlk gerçek uçuşlar açık alanda, tek araçla ve kumandası elinde bir pilotla yapılmalıdır; uçuş izni ve bölge kuralları operatörün sorumluluğundadır.
+- Karşılaştırmadaki sensör geometrik bir test sensörüdür (40 m, %20 kaçırma, yanlış alarm yok); YOLO'nun sahadaki doğruluğu ölçülmedi. SITL'deki kamera tatbikat kamerasıdır: yangın fotoğrafını karede yerine koyar, gerçek görüntü değildir.
+- Konum tahmini aşağı bakan (nadir) kamera ve düz arazi varsayar. `relative_alt` kalkış noktasına göre irtifadır; engebeli arazide AGL değildir.
+- PX4 bu sürümde sürü kontrolüne alınmaz (izleme + RTL/iniş). DJI ve kapalı sistemler üretici SDK'sıyla yazılmış bir köprü ister.
+- Arama-kurtarma modunda gerçek insan algılama modeli bağlı değildir (sentetik sensör + operatör ihbarı).
+- Hub merkezîdir: drone'lar arası doğrudan ağ yoktur. Sunucuyu internete açmak için kimlik doğrulama ve TLS gerekir.
 
 ## Belgeler
 
-- [Türkçe hub kullanım ve entegrasyon kılavuzu](docs/HUB_GUIDE_TR.md)
-- [Kod incelemesi ve gerçek dünya uyumluluk değerlendirmesi](docs/REAL_WORLD_READINESS.md)
-- [Güncel doğrulama raporu](docs/HUB_VALIDATION.md)
+- [Saha kılavuzu](docs/SAHA_KILAVUZU_TR.md) · [Hub kullanımı](docs/HUB_GUIDE_TR.md) · [Drone entegrasyonu](docs/DRONE_INTEGRATION_TR.md)
+- [Arama karşılaştırması](docs/SWARM_COMPARISON_TR.md) · [Doğrulama raporu](docs/HUB_VALIDATION.md) · [Değişiklikler](CHANGELOG.md)
 
-**Eski PDF'ler, `src/` tabanlı benchmark raporları ve önceki mimari belgeler tarihsel çıktılardır.** Yeni web kontrol akışının saha doğrulama belgesi olarak kullanılamazlar. Özellikle önceki "endüstriyel standart", "tam doğrulandı" ve genel algoritma üstünlüğü ifadeleri için yeterli kanıt bulunamadı.
+Eski PDF'ler ve `src/` altındaki önceki benchmark raporları tarihsel çıktılardır; bu sürümün doğrulaması yukarıdaki tablolardır.
 
 ## PSO hareket denklemi
 
-Her kontrol adımında yatay komut şu kısıtlı PSO güncellemesinden üretilir:
+Her kontrol adımında yatay komut kısıtlı PSO güncellemesinden üretilir:
 
 `v_next = w*v + c1*r1*(pbest-x) + c2*r2*(evidence_target-x) + coverage + separation`
 
-Konum farkları metre uzayında hız ölçeğine dönüştürülür. Kanıt bulunmadığında bilişsel/sosyal yangın çekimi sıfırlanır; kapsama terimi sektördeki keşfi sürdürür. Kanıt bulunduğunda PSO kişisel ve paylaşılan hedef bilgisini kullanır. Ardından ivme, araç kapasitesi, kapalı alan ve sınır kontrolleri uygulanır. Bu yöntem saf klasik PSO değil, görev ve güvenlik kısıtları eklenmiş PSO'dur. Sosyal terimi kapatma ve atalet değiştirme regresyonları, bu terimlerin hareketi gerçekten etkilediğini sınar.
-
-
-## Gizli yangın deneyleri ve sonuçlar
-
-Haritada **Tatbikat hedefi** ile gizli hedef eklenir; tatbikat panelinden gecikmeli artçı yangın ve yalnızca operatöre görünen gerçeklik katmanı seçilir. **Kayıt tekrarları** `/static/benchmark.html` adresindedir. Canlı görev motoru kısıtlı PSO olarak korunur.
-
-- [Karşılaştırmalı tablo, yöntem ve başarısız koşular](docs/SWARM_COMPARISON_TR.md)
-- [Gerçek drone ekleme: PX4, ArduPilot, DJI, Parrot ve ortak kamera/telemetri sözleşmesi](docs/DRONE_INTEGRATION_TR.md)
-- [Ham karşılaştırma kayıtları](artifacts/swarm_comparison/runs.json)
-- [Gerçek YOLO çağrılarıyla ayrı deneme](artifacts/operator_trial/trial.json)
-
-Sentetik arama benchmark'ı gerçek yangın algılama veya fiziksel sürü uçuşu yeterliliği değildir. Üretici adaptörü ve uçuş kabulü tamamlanmayan cihazlar destekleniyor gibi gösterilmez.
+Kanıt yokken bilişsel/sosyal yangın çekimi sıfırdır; kapsama terimi (şerit ya da kıvılcım konisi hedefi) aramayı sürdürür. Kanıt bulunduğunda en yakın iki drone incelemeye ayrılır. Ardından ivme, araç kapasitesi, ayrılma, kapalı alan ve sınır kısıtları uygulanır.

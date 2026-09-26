@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from core.swarm_manager import SwarmManager
 from core.geofence_manager import ZoneType
-from hardware.simulated_drone import SimulatedDrone
+from hardware.simulated_drone import SimulatedDrone, SyntheticCamera
 from hardware.mavlink_drone import MAVLinkDrone
 
 
@@ -113,6 +113,8 @@ swarm_mgr = SwarmManager(
     base_name=default_name,
     update_hz=4.0
 )
+_wind = mission_cfg.get("wind", {})
+swarm_mgr.set_wind(float(_wind.get("speed_ms", 0.0)), float(_wind.get("direction_deg", 0.0)))
 
 # Başlangıçta gerçekçi çevresel yangın odakları ve arama filosu
 def initialize_default_swarm():
@@ -133,11 +135,9 @@ def initialize_default_swarm():
             drone_id=name,
             initial_lat=swarm_mgr.center_lat + d_lat,
             initial_lon=swarm_mgr.center_lon + d_lon,
-            initial_alt=40.0,
+            initial_alt=0.0,                     # yerde bekler; görev başlayınca kalkar
             fire_targets=list(swarm_mgr.environmental_fires)
         )
-        drone.telemetry.is_in_air = drone.telemetry.alt > 0
-        drone.telemetry.is_armed = True
         swarm_mgr.register_drone(drone)
 
     # Örnek bir su birikintisi / göl bölgesini kapatalım
@@ -227,7 +227,13 @@ class AddDroneRequest(APIModel):
     alt: Altitude = 40.0
     pilot_name: Optional[str] = None
     connection_string: Optional[str] = "udpin:0.0.0.0:14550"
+    target_system: Optional[int] = Field(default=None, ge=1, le=255)
     camera_url: Optional[str] = None
+    synthetic_camera: bool = False
+
+
+class DroneControlRequest(APIModel):
+    enable: bool
 
 
 class SpawnAtRequest(APIModel):
@@ -483,11 +489,20 @@ async def add_drone_api(req: AddDroneRequest):
         drone = MAVLinkDrone(
             drone_id=drone_id,
             connection_string=req.connection_string or "udpin:0.0.0.0:14550",
-            video_stream_url=req.camera_url
+            video_stream_url=req.camera_url,
+            target_system=req.target_system,
+            camera_source=SyntheticCamera(lambda: list(swarm_mgr.environmental_fires)) if req.synthetic_camera else None,
         )
+        drone.capabilities.update(req.capabilities.model_dump())
         success = await asyncio.to_thread(swarm_mgr.register_drone, drone)
         if not success:
-            raise HTTPException(status_code=500, detail="MAVLink otopilotuna bağlanılamadı")
+            raise HTTPException(status_code=502, detail=f"{req.connection_string} adresinden 10 s içinde otopilot "
+                                "heartbeat'i gelmedi. Bağlantı adresini, portu ve telemetri yönlendirmesini kontrol edin.")
+        swarm_mgr.drones[drone_id].capabilities.update(req.capabilities.model_dump())
+        return {"status": "success", "drone_id": drone_id, "type": d_type,
+                "autopilot": drone.autopilot, "system_id": drone.target_system,
+                "message": f"{drone_id} bağlandı ({drone.autopilot}, sistem {drone.target_system}). Şimdilik yalnızca "
+                           "gözleniyor; kartındaki uçuş öncesi kontroller geçince 'Hub kontrolüne al'."}
     elif d_type == "volunteer":
         v_drone = swarm_mgr.register_volunteer(
             pilot_name=req.pilot_name or "Saha Gönüllüsü",
@@ -572,6 +587,22 @@ async def drone_land_api(drone_id: str):
     if not ok:
         raise HTTPException(status_code=404, detail="Drone bulunamadı")
     return {"status": "success", "drone_id": drone_id, "message": f"{drone_id} iniş yapıyor"}
+
+
+@app.get("/api/drone/{drone_id}/preflight")
+async def drone_preflight_api(drone_id: str):
+    if drone_id not in swarm_mgr.drones:
+        raise HTTPException(status_code=404, detail="Drone bulunamadı")
+    return {"drone_id": drone_id, "checks": swarm_mgr.preflight(drone_id)}
+
+
+@app.post("/api/drone/{drone_id}/control")
+async def drone_control_api(drone_id: str, req: DroneControlRequest):
+    """Operatör onayı: otopilotu hub kontrolüne alır (kontroller geçerse) ya da bırakır."""
+    if drone_id not in swarm_mgr.drones:
+        raise HTTPException(status_code=404, detail="Drone bulunamadı")
+    result = await asyncio.to_thread(swarm_mgr.set_drone_control, drone_id, req.enable)
+    return {"drone_id": drone_id, **result}
 
 
 @app.delete("/api/drone/{drone_id}")

@@ -1,5 +1,84 @@
 # Yangın ve artçı yangın arama karşılaştırması
 
+## Güncel sonuç (26 Eylül 2026): hibrit arama, iki senaryo, ayarda kullanılmamış tohumlar
+
+**Kurulum.** 800 × 800 m alan, 4 drone (85 m, 10 m/s), 600 s. Her senaryoda 4 gizli yangın: 2'si başta, artçılar 180. ve 360. saniyede tutuşur. Sensör geometriktir: 40 m menzil, 2 s'de bir gözlem, %20 kaçırma, yanlış alarm yok (YOLO değil). Uçuş fiziği üretimdeki `SimulatedDrone`, kısıtlar üretimdeki `PSOEngine`. Kütüphane yöntemleri (MEALPY 3.0.3) her 30 s'de 200 değerlendirmeyle gözlenmiş kapsama haritası üzerinde hedef seçer; hub yöntemleri uçtan uca çalışır. Gizli yangın konumları yalnızca sensör ve değerlendirmede okunur.
+
+- **Rastgele konumlu yangınlar:** rüzgâr yok, bütün yangınlar alanda rastgele.
+- **Rüzgâr altı artçı yangınlar:** 5 m/s rüzgâr (yönü tohuma göre rastgele, operatör girdisi olarak hub'a verilir); artçılar ilk yangının 150–450 m rüzgâr altında, ±25° içinde tutuşur.
+
+**Tohum disiplini.** Hibrit yöntemin tasarımı ve eşikleri 101–120 tohumlarında seçildi. 201–240 tohumları bir kez değerlendirildi; rüzgârsız senaryodaki zayıflığı (eski hibrit, rüzgâr yokken en eski hücreleri yeniden ziyaret ediyordu) bu değerlendirme gösterdi. Düzeltme yeniden 101–120 üzerinde seçildi ve aşağıdaki sayılar **hiç kullanılmamış 241–280** tohumlarından gelir (senaryo başına 40 tohum × 21 yöntem = 840 koşu, hata yok).
+
+**Ölçüler.** *Bulunan*: 160 yangından bulunan oran. *Artçı tespit süresi*: tutuşmadan tespite; bulunamayan artçıya ufka kadar geçen süre yazılır. *Ortalama gecikme*: tüm yangınlar için aynı ceza kuralıyla. *En az ayrılma*: tüm koşulardaki en yakın iki drone (30 m altı güvenlik ihlali sayılır; hiçbir yöntemde yok).
+
+### Rüzgâr altı artçı yangınlar
+
+| Sıra | Yöntem | İlk yangın (s) | Bulunan | Artçı bulunan | Artçı tespit süresi (s) | Ortalama gecikme (s) | En az ayrılma (m) |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 1/21 | **Hub hibrit (yeni varsayılan)** | 70.7 | %99.4 | %98.8 | 75.5 | 103.4 | 44.4 |
+| 2/21 | Hub tam uyarlanır | 88.2 | %98.8 | %98.8 | 112.8 | 136.2 | 61.4 |
+| 3/21 | Hub şerit (sensöre uygun aralık) | 70.7 | %93.1 | %86.2 | 133.6 | 135.2 | 72.2 |
+| 4/21 | DE (MEALPY) | 68.9 | %91.9 | %83.8 | 139.1 | 134.8 | 46.5 |
+| 5/21 | SSA (MEALPY) | 67.8 | %91.9 | %83.8 | 162.2 | 148.4 | 47.2 |
+| 6/21 | GWO (MEALPY) | 93.3 | %90.0 | %80.0 | 155.7 | 159.4 | 50.3 |
+| 7/21 | FFA (MEALPY) | 68.1 | %89.4 | %78.8 | 157.8 | 136.7 | 48.3 |
+| 8/21 | HCO (MEALPY) | 64.5 | %89.4 | %78.8 | 157.7 | 144.6 | 49.1 |
+| 9/21 | PSO (MEALPY) | 81.5 | %89.4 | %81.2 | 152.8 | 152.0 | 46.7 |
+| 10/21 | BA (MEALPY) | 64.0 | %88.8 | %78.8 | 166.5 | 149.6 | 48.0 |
+| 11/21 | HHO (MEALPY) | 69.2 | %88.8 | %80.0 | 159.7 | 149.7 | 46.6 |
+| 12/21 | CMA-ES | 64.8 | %88.1 | %77.5 | 157.7 | 146.0 | 48.3 |
+| 13/21 | FFO (MEALPY) | 64.7 | %88.1 | %78.8 | 157.9 | 148.0 | 46.9 |
+| 14/21 | CEM (MEALPY) | 75.2 | %87.5 | %76.2 | 160.4 | 151.6 | 45.7 |
+| 15/21 | SFO (MEALPY) | 62.2 | %86.9 | %73.8 | 161.2 | 147.2 | 46.7 |
+| 16/21 | WHO (MEALPY) | 56.3 | %86.2 | %73.8 | 169.1 | 150.5 | 50.1 |
+| 17/21 | Hub şerit (yayımlanan eski) | 73.3 | %85.6 | %85.0 | 120.4 | 152.7 | 66.2 |
+| 18/21 | TOA (MEALPY) | 49.8 | %85.0 | %71.2 | 166.3 | 147.3 | 47.7 |
+| 19/21 | GA (MEALPY) | 67.0 | %84.4 | %70.0 | 190.3 | 165.4 | 49.3 |
+| 20/21 | DO (MEALPY) | 73.0 | %84.4 | %68.8 | 193.2 | 165.5 | 46.6 |
+| 21/21 | Rastgele hedef | 118.3 | %70.6 | %52.5 | 196.3 | 213.3 | 45.4 |
+
+### Rastgele konumlu yangınlar
+
+| Sıra | Yöntem | İlk yangın (s) | Bulunan | Artçı bulunan | Artçı tespit süresi (s) | Ortalama gecikme (s) | En az ayrılma (m) |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 1/21 | DO (MEALPY) | 70.2 | %96.9 | %93.8 | 119.1 | 128.5 | 46.6 |
+| 2/21 | **Hub hibrit (yeni varsayılan)** | 70.7 | %96.9 | %95.0 | 117.4 | 128.9 | 53.1 |
+| 3/21 | Hub şerit (sensöre uygun aralık) | 70.7 | %96.9 | %95.0 | 117.4 | 128.9 | 53.1 |
+| 4/21 | GA (MEALPY) | 66.8 | %95.6 | %92.5 | 131.1 | 135.8 | 49.3 |
+| 5/21 | SSA (MEALPY) | 66.9 | %94.4 | %88.8 | 139.0 | 136.8 | 47.2 |
+| 6/21 | SFO (MEALPY) | 64.0 | %93.8 | %87.5 | 130.4 | 131.8 | 46.7 |
+| 7/21 | TOA (MEALPY) | 49.8 | %93.1 | %87.5 | 141.8 | 135.0 | 47.7 |
+| 8/21 | DE (MEALPY) | 72.9 | %93.1 | %86.2 | 143.2 | 136.9 | 46.5 |
+| 9/21 | HCO (MEALPY) | 64.5 | %92.5 | %85.0 | 127.0 | 129.3 | 49.1 |
+| 10/21 | CMA-ES | 66.2 | %92.5 | %86.2 | 142.1 | 138.2 | 48.3 |
+| 11/21 | CEM (MEALPY) | 75.0 | %92.5 | %86.2 | 134.2 | 138.4 | 45.7 |
+| 12/21 | FFA (MEALPY) | 68.1 | %91.9 | %83.8 | 143.4 | 129.5 | 48.3 |
+| 13/21 | BA (MEALPY) | 64.0 | %91.2 | %83.8 | 131.2 | 131.9 | 48.0 |
+| 14/21 | WHO (MEALPY) | 57.0 | %91.2 | %83.8 | 148.2 | 140.1 | 50.1 |
+| 15/21 | PSO (MEALPY) | 77.9 | %91.2 | %85.0 | 155.7 | 153.4 | 46.7 |
+| 16/21 | FFO (MEALPY) | 64.7 | %90.6 | %83.8 | 160.6 | 149.3 | 46.9 |
+| 17/21 | HHO (MEALPY) | 69.6 | %90.0 | %82.5 | 133.4 | 136.6 | 46.6 |
+| 18/21 | GWO (MEALPY) | 94.7 | %89.4 | %78.8 | 150.4 | 156.8 | 50.3 |
+| 19/21 | Hub tam uyarlanır | 88.2 | %88.1 | %78.8 | 137.7 | 145.6 | 74.0 |
+| 20/21 | Hub şerit (yayımlanan eski) | 72.9 | %81.9 | %75.0 | 157.0 | 166.0 | 66.3 |
+| 21/21 | Rastgele hedef | 110.2 | %81.2 | %73.8 | 143.9 | 187.2 | 45.4 |
+
+Sıra: önce bulunan oran, sonra ortalama gecikme. Rüzgârsız senaryoda hibrit tanım gereği şerit taramayla aynı koşar (bilinen yangın rüzgâr altı konisi oluşturmaz). Bu sonuçlar yangın algılama modelinin sahadaki doğruluğunu veya fiziksel uçuş yeterliliğini göstermez.
+
+Yeniden üretim:
+
+```powershell
+py -3.11 scripts/compare_swarm_search.py --families all --scenario spotting --seeds 241 242 ... 280 --algorithms Hub-Hybrid-PSO ... --output artifacts/search_v2/parts/spotting_0
+py -3.11 scripts/merge_search_parts.py
+py -3.11 scripts/make_search_report.py
+```
+
+Ham sonuçlar: `artifacts/search_v2/final_uniform/`, `artifacts/search_v2/final_spotting/`.
+
+---
+
+## Önceki tarama (19 Eylül 2026, tarihsel)
+
 **137 yöntem / 685 koşu tamamlandı.** 5 koşu hata verdi; bunlar başarı tablosuna çevrilmedi. Liste MEALPY 3.0.3 içindeki 134 Original uygulama + CMA-ES + hub PSO ve rastgele referanstan oluşur. Bu, dünyadaki bütün optimizasyon teknikleri değildir.
 
 İlk yangını ortalamada en erken gören: **FFO.OriginalFFO — 35.6 s**; toplam keşfi %90.0. Keşif oranı, ardından kaçırmalar dahil gecikme sıralamasında önde: **SFO.OriginalSFO**. Bunlar yalnızca aşağıdaki beş sentetik senaryonun sonuçlarıdır; bağımsız saha doğrulaması veya evrensel kazanan değildir.

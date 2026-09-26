@@ -1,6 +1,21 @@
 """Equal-budget, hidden-truth search comparison using installed MEALPY originals.
 Not a real-fire detector benchmark. Sensor is explicitly geometric with misses.
 Run: py -3.11 scripts/compare_swarm_search.py --seeds 101 102 103
+
+Scenarios (--scenario):
+  uniform  : the published setting; every target position is uniform in the area.
+  spotting : aftershock (spot) fires ignite DOWNWIND of an initial fire, 150-450 m away
+             within +-25 deg of the wind axis (embers). The hub receives the wind as an
+             operator input (set_wind); target positions are never given to any planner.
+
+Hub variants:
+  Hub-Constrained-PSO : the published lawnmower lanes (lane spacing from the default 85 m
+                        camera footprint, wider than the 40 m test sensor).
+  Hub-Lanes-Matched   : the same lanes, spacing matched to the 40 m sensor (fairness check).
+  Hub-Adaptive-PSO    : the whole swarm revisits the oldest cells (+ ember priority).
+  Hub-Hybrid-PSO      : sensor-matched lanes; a drone that has swept its sector once flies to
+                        the downwind ember cone of a known fire (cells unseen for >= 60 s),
+                        otherwise it repeats its lanes (live default).
 """
 import argparse
 import importlib
@@ -105,17 +120,43 @@ def optimize(cls, objective, seed):
     return best.reshape(4,2), evaluations
 
 
-def scenario(seed):
+WIND_SPEED = 5.0
+
+
+def wind_from_deg(seed):
+    return float(np.random.default_rng([seed, 7]).uniform(0, 360))
+
+
+def scenario(seed, kind='uniform'):
     # Scenarios sampled independently of optimizer seeds and never given to planner.
     rng = np.random.default_rng(seed)
-    return [{'xy': rng.uniform(80,720,2).tolist(), 'ignition_s': ignition,
-             'detected_s':None} for ignition in (0,0,180,360)]
+    if kind == 'uniform':
+        return [{'xy': rng.uniform(80,720,2).tolist(), 'ignition_s': ignition,
+                 'detected_s':None} for ignition in (0,0,180,360)]
+    initial = [rng.uniform(80,720,2) for _ in range(2)]
+    to = math.radians((wind_from_deg(seed) + 180) % 360)
+    targets = [{'xy': xy.tolist(), 'ignition_s': 0, 'detected_s': None} for xy in initial]
+    for ignition in (180, 360):
+        source = initial[rng.integers(0, 2)]
+        angle = to + math.radians(rng.uniform(-25, 25))
+        distance = rng.uniform(150, 450)
+        xy = np.clip(source + distance * np.array([math.sin(angle), math.cos(angle)]), 60, 740)
+        targets.append({'xy': xy.tolist(), 'ignition_s': ignition, 'detected_s': None})
+    return targets
 
 
-def run_one(name, cls, seed, horizon=HORIZON, sensor_enabled=True):
+def run_one(name, cls, seed, horizon=HORIZON, sensor_enabled=True, scenario_kind='uniform'):
     random.seed(seed)
     engine = PSOEngine()
     engine.aoi_bounds = {'min_lat':37,'max_lat':37+800/M,'min_lon':28,'max_lon':28+800/SX}
+    engine.set_wind(WIND_SPEED if scenario_kind == 'spotting' else 0.0, wind_from_deg(seed))
+    engine.config.search_strategy = {'Hub-Adaptive-PSO': 'adaptive', 'Hub-Hybrid-PSO': 'hybrid'}.get(name, 'lanes')
+    if name in ('Hub-Adaptive-PSO', 'Hub-Hybrid-PSO'):
+        engine.config.sensor_radius_m = 40.0            # the planner knows its sensor's reach
+    if name == 'Hub-Lanes-Matched':
+        # lane spacing = 2 * 85 m * tan(hfov/2) * 0.7 = 2 * 40 m * 0.7 (the test sensor)
+        hfov = 2 * math.degrees(math.atan(40 / 85))
+        engine.capabilities = {f'D{i}': {'camera_hfov_deg': hfov} for i in range(4)}
     drones = []
     for i,(x,y) in enumerate([(100,100),(300,100),(500,100),(700,100)]):
         drone = SimulatedDrone(f'D{i}',37+y/M,28+x/SX,85)
@@ -124,7 +165,7 @@ def run_one(name, cls, seed, horizon=HORIZON, sensor_enabled=True):
         drone.telemetry.is_armed = True
         drones.append(drone)
         engine.register_or_update_particle(drone.drone_id,37+y/M,28+x/SX,85)
-    truth = scenario(seed)
+    truth = scenario(seed, scenario_kind)
     observed = ObservedMap()
     total_evals = 0
     distance = 0.0
@@ -178,11 +219,14 @@ def run_one(name, cls, seed, horizon=HORIZON, sensor_enabled=True):
     found=[t for t in eligible if t['detected_s'] is not None]
     # Penalized delay assigns every miss the remaining observation window, not deletion.
     delay=np.mean([(t['detected_s'] if t['detected_s'] is not None else horizon)-t['ignition_s'] for t in eligible])
-    return {'algorithm':name,'seed':seed,'status':'ok','recall':len(found)/len(eligible),
+    return {'algorithm':name,'seed':seed,'scenario':scenario_kind,'status':'ok','recall':len(found)/len(eligible),
             'found':len(found),'targets':truth,'penalized_delay_s':float(delay),
             'secondary_recall':sum(t['detected_s'] is not None for t in eligible if t['ignition_s']>0)/max(1,sum(t['ignition_s']>0 for t in eligible)),
             'distance_m':distance,'minimum_separation_m':min_separation,'max_speed_ms':speed_max,
             'bounds_violations':bounds_violations,'evaluations':total_evals,
+            'first_detection_s':min((t['detected_s'] for t in truth if t['detected_s'] is not None),default=horizon),
+            'secondary_delay_s':float(np.mean([(t['detected_s'] if t['detected_s'] is not None else horizon)-t['ignition_s']
+                                               for t in eligible if t['ignition_s']>0])),
             'wall_seconds':time.perf_counter()-started,'history':history}
 
 
@@ -196,6 +240,7 @@ def summarize(rows, names, seeds):
                         'recall':float(np.mean([r['recall'] for r in valid])),
                         'secondary_recall':float(np.mean([r['secondary_recall'] for r in valid])),
                         'penalized_delay_s':float(np.mean([r['penalized_delay_s'] for r in valid])),
+                        'secondary_delay_s':float(np.mean([r.get('secondary_delay_s', float('nan')) for r in valid])),
                         'first_detection_s':float(np.mean([min((t['detected_s'] for t in r['targets'] if t['detected_s'] is not None),default=HORIZON) for r in valid])),
                         'minimum_separation_m':min(r['minimum_separation_m'] for r in valid),
                         'safety_pass':all(r['minimum_separation_m'] >=30 and r['bounds_violations']==0 for r in valid),
@@ -234,10 +279,12 @@ def main():
     parser.add_argument('--output', default=str(OUT))
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--families',choices=['swarm','others','all'],default='swarm')
+    parser.add_argument('--scenario',choices=['uniform','spotting'],default='uniform')
     args=parser.parse_args()
     output=Path(args.output)
     methods=catalog(args.families)
-    methods={'Hub-Constrained-PSO':None,'Random-waypoints':None,**methods}
+    methods={'Hub-Hybrid-PSO':None,'Hub-Adaptive-PSO':None,'Hub-Constrained-PSO':None,'Hub-Lanes-Matched':None,
+             'Random-waypoints':None,**methods}
     if args.algorithms:methods={n:methods[n] for n in args.algorithms}
     output.mkdir(parents=True,exist_ok=True)
     rows=json.loads((output/'runs.json').read_text(encoding='utf-8')) if args.resume and (output/'runs.json').exists() else []
@@ -245,7 +292,7 @@ def main():
     for name,cls in methods.items():
         for seed in args.seeds:
             if (name,seed) in completed: continue
-            try:row=run_one(name,cls,seed)
+            try:row=run_one(name,cls,seed,scenario_kind=args.scenario)
             except Exception as exc:row={'algorithm':name,'seed':seed,'status':'failed','error':repr(exc)}
             rows.append(row)
             write_snapshot(output/'runs.json', rows)

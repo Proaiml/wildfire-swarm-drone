@@ -62,6 +62,8 @@ class PSOConfig:
     max_altitude: float = 120.0          # Maksimum yasal/operasyonel irtifa (metre)
     search_altitude: float = 85.0        # Yangın aranırken tercih edilen geniş açı irtifası
     inspect_altitude: float = 35.0       # Yangın teyit edilirken inilecek detay irtifası
+    inspect_standoff_m: float = 22.0     # İki inceleyici olayın iki yanında durur (aralarında ~44 m)
+    inspect_alt_step_m: float = 10.0     # İkinci inceleyici bu kadar yukarıda kalır (dikey ayrılma)
 
     # Güvenlik ve Ayrılma (Collision Avoidance)
     safe_drone_distance_m: float = 30.0  # Sürü içi minimum ayrılma mesafesi
@@ -70,6 +72,27 @@ class PSOConfig:
 
     # Zaman adımı
     dt: float = 0.5                      # Güncelleme zaman aralığı (saniye)
+
+    # Arama stratejisi (kanıt yokken devriye hedefi nasıl seçilir?)
+    #   "hybrid"  : önce tarama, sonra yeniden ziyaret. Her drone sektörünü bir kez
+    #               şeritlerle (kamera erişimine göre aralıklı, örtüşmesiz) tarar; ilk yangınları
+    #               en hızlı bu bulur. Sektörü görülünce en uzun süredir görülmeyen ve rüzgâr
+    #               altındaki kıvılcım bölgesinde kalan noktalara döner: artçı yangınlar için.
+    #   "adaptive": tüm sürü en uzun süredir görülmeyen hücrelere gider (şerit yok).
+    #   "lanes"   : yalnızca sabit çim biçme (boustrophedon) şeritleri.
+    search_strategy: str = "hybrid"
+    coverage_cell_m: float = 30.0        # Kapsama haritası hücre boyu
+    sensor_radius_m: Optional[float] = None  # None = kamera izdüşümü (irtifa * tan(HFOV/2))
+    revisit_horizon_s: float = 300.0     # Bu süre görülmeyen hücre "hiç görülmemiş" sayılır
+    ember_seconds: float = 90.0          # Kıvılcım menzili ≈ rüzgâr hızı × bu süre (5 m/s → 450 m)
+    ember_half_angle_deg: float = 35.0   # Kıvılcım konisi yarı açısı
+    ember_weight: float = 2.0            # Kıvılcım bölgesinin ek önceliği
+    goal_hold_s: float = 12.0
+    # hybrid: sektörünü bir kez tarayan drone ne yapar?
+    #   "ember": bilinen yangın varsa rüzgâr altı kıvılcım bölgesine döner, yoksa şeritleri tekrarlar
+    #   "age"  : en uzun süredir görülmeyen hücreye döner (kıvılcım riski ağırlıklı)
+    hybrid_revisit: str = "ember"            # Bir devriye hedefi en az bu kadar korunur (salınımı önler)
+    candidate_merge_m: float = 90.0      # Bu mesafedeki kamera tahminleri aynı olay sayılır
 
 
 class PSOEngine:
@@ -117,6 +140,12 @@ class PSOEngine:
         self._route_key = None
         self.mission_kind = "fire"
         self.elapsed_seconds = 0.0
+        # Uyarlanır arama: kapsama haritası ve devriye hedefleri
+        self._cov: Optional[Dict[str, Any]] = None
+        self._blocked_key = None
+        self.goals: Dict[str, Tuple[float, float]] = {}
+        self.goal_time: Dict[str, float] = {}
+        self.sweeps_done: Dict[str, int] = {}
 
     def set_wind(self, speed_ms: float, direction_deg: float):
         """Saha rüzgar parametrelerini günceller."""
@@ -215,7 +244,7 @@ class PSOEngine:
             d_lon_m = (lon - clon) * m_per_deg_lon
             dist_m = math.hypot(d_lat_m, d_lon_m)
 
-            if dist_m < 50.0:
+            if dist_m < self.config.candidate_merge_m:
                 if cluster.get("status") in ("confirmed", "dismissed", "resolved"):
                     # Resolved/dismissed observations must not hide future spot fires forever.
                     if cluster.get("status") == "confirmed" or self.elapsed_seconds-cluster.get("status_changed_s", self.elapsed_seconds) < 60:
@@ -274,7 +303,8 @@ class PSOEngine:
             # 70% overlap-aware spacing of the nominal nadir footprint.
             cap = self.capabilities.get(p.drone_id, {})
             height = min(cap.get("search_altitude_m", self.config.search_altitude), cap.get("max_altitude_m", 120))
-            spacing = 2*height*math.tan(math.radians(cap.get("camera_hfov_deg",84)/2))*.7
+            reach = self.config.sensor_radius_m or height*math.tan(math.radians(cap.get("camera_hfov_deg",84)/2))
+            spacing = 2*reach*.7
             lanes = max(2, min(500, math.ceil((right-left)*scale_x / max(5, spacing))))
             route = []
             for j in range(lanes):
@@ -285,11 +315,211 @@ class PSOEngine:
                 route.extend((y, x) for y in ends)
             self.routes[p.drone_id] = route
             self.route_indices[p.drone_id] = 0
+            self.sweeps_done[p.drone_id] = 0
+
+    # ------------------------------------------------------------------ uyarlanır arama
+    def _coverage_grid(self) -> Optional[Dict[str, Any]]:
+        """AOI'yi coverage_cell_m hücrelere böler; her hücrenin son görülme zamanı tutulur."""
+        if self.aoi_bounds is None:
+            return None
+        b = self.aoi_bounds
+        key = (b["min_lat"], b["max_lat"], b["min_lon"], b["max_lon"], self.config.coverage_cell_m)
+        if self._cov is not None and self._cov["key"] == key:
+            return self._cov
+        sx = self.METERS_PER_DEGREE * math.cos(math.radians((b["min_lat"] + b["max_lat"]) / 2))
+        height = (b["max_lat"] - b["min_lat"]) * self.METERS_PER_DEGREE
+        width = (b["max_lon"] - b["min_lon"]) * sx
+        cell = max(5.0, self.config.coverage_cell_m)
+        rows, cols = max(1, math.ceil(height / cell)), max(1, math.ceil(width / cell))
+        y = (np.arange(rows) + 0.5) * height / rows
+        x = (np.arange(cols) + 0.5) * width / cols
+        xx, yy = np.meshgrid(x, y)
+        self._cov = {
+            "key": key, "rows": rows, "cols": cols, "sx": sx, "x": xx, "y": yy,
+            "lat": b["min_lat"] + yy / self.METERS_PER_DEGREE, "lon": b["min_lon"] + xx / sx,
+            # Başlangıçta her yer "hiç görülmemiş"
+            "cell_y": height / rows, "cell_x": width / cols,
+            "last_seen": np.full((rows, cols), self.elapsed_seconds - self.config.revisit_horizon_s),
+            "blocked": np.zeros((rows, cols), dtype=bool),
+        }
+        self._blocked_key = None
+        self.goals.clear()
+        self.goal_time.clear()
+        return self._cov
+
+    def _xy(self, lat: float, lon: float) -> Tuple[float, float]:
+        cov = self._cov
+        b = self.aoi_bounds
+        return (lon - b["min_lon"]) * cov["sx"], (lat - b["min_lat"]) * self.METERS_PER_DEGREE
+
+    def _cell(self, x: float, y: float) -> Tuple[int, int]:
+        cov = self._cov
+        return (min(cov["rows"] - 1, max(0, int(y / cov["cell_y"]))),
+                min(cov["cols"] - 1, max(0, int(x / cov["cell_x"]))))
+
+    def _sensor_radius(self, p: SwarmParticleState) -> float:
+        if self.config.sensor_radius_m is not None:
+            return self.config.sensor_radius_m
+        hfov = self.capabilities.get(p.drone_id, {}).get("camera_hfov_deg", 84)
+        return max(5.0, p.alt * math.tan(math.radians(hfov / 2)))
+
+    def mark_seen(self, particles) -> None:
+        """Kameranın gördüğü hücrelerin son görülme zamanını günceller (yalnızca drone konumlarından)."""
+        cov = self._coverage_grid()
+        if cov is None:
+            return
+        for p in particles:
+            if p.alt < 5:
+                continue
+            px, py = self._xy(p.lat, p.lon)
+            r = self._sensor_radius(p)
+            cov["last_seen"][(cov["x"] - px) ** 2 + (cov["y"] - py) ** 2 <= r * r] = self.elapsed_seconds
+
+    def _update_blocked(self, altitude: float) -> None:
+        zones = tuple((z.id, tuple(z.coordinates), z.min_alt, z.max_alt) for z in self.geofence_mgr.get_all_zones())
+        key = (zones, round(altitude, -1))
+        if key == self._blocked_key:
+            return
+        self._blocked_key = key
+        cov = self._cov
+        blocked = np.zeros((cov["rows"], cov["cols"]), dtype=bool)
+        if zones:
+            for i in range(cov["rows"]):
+                for j in range(cov["cols"]):
+                    blocked[i, j] = self.geofence_mgr.is_point_inside(float(cov["lat"][i, j]), float(cov["lon"][i, j]), altitude)[0]
+        cov["blocked"] = blocked
+
+    def _known_fires(self):
+        return [c for c in self.discovered_fire_clusters
+                if c.get("kind", "fire") == "fire" and c.get("status") in ("candidate", "confirmed")]
+
+    def ember_risk(self, ring: bool = True) -> np.ndarray:
+        """Bilinen yangınların rüzgâr altındaki kıvılcım (artçı yangın) bölgesi ve yakın çevresi.
+
+        Rüzgâr yönü meteorolojik kuraldadır (rüzgârın ESTİĞİ yön); kıvılcımlar ters yöne taşınır.
+        Bu bir öncelik ağırlığıdır, konum bilgisi değildir: gizli hedef koordinatı kullanılmaz.
+        """
+        cov = self._cov
+        risk = np.zeros((cov["rows"], cov["cols"]))
+        fires = self._known_fires()
+        if not fires or self.mission_kind != "fire":
+            return risk
+        to_deg = (self.wind_direction_deg + 180.0) % 360.0
+        ux, uy = math.sin(math.radians(to_deg)), math.cos(math.radians(to_deg))
+        cos_half = math.cos(math.radians(self.config.ember_half_angle_deg))
+        reach = min(800.0, max(150.0, self.config.ember_seconds * self.wind_speed_ms))
+        for c in fires:
+            fx, fy = self._xy(c["lat"], c["lon"])
+            dx, dy = cov["x"] - fx, cov["y"] - fy
+            dist = np.hypot(dx, dy)
+            along = dx * ux + dy * uy
+            cone = (self.wind_speed_ms >= 1.0) & (dist > 30) & (dist < reach) & (along > cos_half * dist)
+            # Kıvılcımların çoğu yangına yakın düşer: uzaklıkla azalan ağırlık
+            risk += self.config.ember_weight * np.where(cone, np.exp(-dist / (0.5 * reach)), 0.0)
+            if ring:
+                risk += 0.5 * self.config.ember_weight * (dist < 150.0)
+        return risk
+
+    def search_priority(self) -> np.ndarray:
+        cov = self._cov
+        age = np.clip(self.elapsed_seconds - cov["last_seen"], 0, self.config.revisit_horizon_s) / self.config.revisit_horizon_s
+        return np.where(cov["blocked"], 0.0, age * (1.0 + self.ember_risk()))
+
+    def _assign_goals(self, particles, inspectors, only=None, ember_only: bool = False) -> None:
+        cov = self._coverage_grid()
+        if cov is None or not particles:
+            return
+        now = self.elapsed_seconds
+        positions = {p.drone_id: self._xy(p.lat, p.lon) for p in particles}
+        searchers = [p for p in sorted(particles, key=lambda q: q.drone_id)
+                     if p.drone_id not in inspectors and (only is None or p.drone_id in only)]
+        # 1) Kimin yeni hedefe ihtiyacı var? Öncelik haritası yalnızca gerekirse hesaplanır.
+        need, check, keep = [], [], []
+        for p in searchers:
+            goal = self.goals.get(p.drone_id)
+            if goal is None:
+                need.append(p)
+                continue
+            gx, gy = self._xy(*goal)
+            px, py = positions[p.drone_id]
+            if math.hypot(gx - px, gy - py) <= max(12.0, 0.5 * self._sensor_radius(p)):
+                need.append(p)                                   # hedefe varıldı
+            elif now - self.goal_time.get(p.drone_id, -1e9) < self.config.goal_hold_s:
+                keep.append(p)
+            else:
+                check.append(p)
+        if not need and not check:
+            return
+        self._update_blocked(max(p.alt for p in particles))
+        prio = self.search_priority()
+        if ember_only:
+            # yalnızca rüzgâr altı kıvılcım konisi ve en az 60 s'dir görülmemiş hücreler; gerisi şerit taramasına kalır
+            age = now - cov["last_seen"]
+            prio = np.where((self.ember_risk(ring=False) > 0) & (age >= 60.0), prio, 0.0)
+        peak = float(prio.max())
+        for p in check:                                          # hedef hâlâ değerli mi?
+            gi, gj = self._cell(*self._xy(*self.goals[p.drone_id]))
+            (keep if prio[gi, gj] >= 0.3 * peak else need).append(p)
+        if not need:
+            return
+
+        # 2) Ayrışma alanı tek seferde: her drone ve korunan hedef çevresini "dolu" sayar
+        def occupancy(x, y, spread):
+            return np.log1p(-0.999 * np.exp(-((cov["x"] - x) ** 2 + (cov["y"] - y) ** 2) / (2 * spread * spread)))
+        spreads = {p.drone_id: 2.0 * self._sensor_radius(p) for p in particles}
+        own = {i: occupancy(*positions[i], spreads[i]) for i in positions}
+        occ = sum(own.values())
+        for p in keep:
+            occ = occ + occupancy(*self._xy(*self.goals[p.drone_id]), spreads[p.drone_id])
+        for i, goal in self.goals.items():                       # diğer grupların hedefleri de dolu
+            if i in spreads and i not in {q.drone_id for q in searchers} and i not in inspectors:
+                occ = occ + occupancy(*self._xy(*goal), spreads[i])
+        for i in inspectors:
+            if i in self.goals and i in spreads:
+                occ = occ + occupancy(*self._xy(*self.goals[i]), spreads[i])
+
+        # 3) Sırayla en yararlı hücreyi seç (yakın + uzun süredir görülmemiş + kıvılcım riski yüksek)
+        for p in need:
+            px, py = positions[p.drone_id]
+            speed = min(self.config.max_speed, self.capabilities.get(p.drone_id, {}).get("max_speed_ms", 10))
+            dist = np.hypot(cov["x"] - px, cov["y"] - py)
+            utility = prio * np.exp(-dist / max(100.0, speed * 40.0)) * np.exp(occ - own[p.drone_id])
+            sector = self.sectors.get(p.drone_id)
+            if sector:
+                inside = (cov["lon"] >= sector[0][1]) & (cov["lon"] <= sector[1][1])
+                utility = utility * np.where(inside, 1.0, 0.75)
+            if float(utility.max()) <= 0:
+                self.goals.pop(p.drone_id, None)                  # değerli hücre yok: şeritlere dön
+                continue
+            i, j = np.unravel_index(int(np.argmax(utility)), utility.shape)
+            self.goals[p.drone_id] = (float(cov["lat"][i, j]), float(cov["lon"][i, j]))
+            self.goal_time[p.drone_id] = now
+            occ = occ + occupancy(float(cov["x"][i, j]), float(cov["y"][i, j]), spreads[p.drone_id])
+
+    def coverage_snapshot(self, max_cells: int = 40) -> Optional[Dict[str, Any]]:
+        """Arayüz için küçültülmüş 'son görülme' haritası: 0 = az önce görüldü, 1 = uzun süredir görülmedi."""
+        cov = self._cov
+        if cov is None:
+            return None
+        age = np.clip(self.elapsed_seconds - cov["last_seen"], 0, self.config.revisit_horizon_s) / self.config.revisit_horizon_s
+        fy, fx = max(1, math.ceil(cov["rows"] / max_cells)), max(1, math.ceil(cov["cols"] / max_cells))
+        rows, cols = math.ceil(cov["rows"] / fy), math.ceil(cov["cols"] / fx)
+        small = np.zeros((rows, cols))
+        for i in range(rows):
+            for j in range(cols):
+                small[i, j] = age[i * fy:(i + 1) * fy, j * fx:(j + 1) * fx].mean()
+        risk = self.ember_risk()
+        return {"bounds": self.aoi_bounds, "rows": rows, "cols": cols,
+                "age": np.round(small, 2).ravel().tolist(),
+                "ember": bool(risk.max() > 0),
+                "seen_ratio": round(float(np.mean(age < 0.999)), 3)}
 
     def step(self, active_ids=None) -> Dict[str, Tuple[float, float, float, float]]:
         self.elapsed_seconds += self.config.dt
         particles = [p for p in self.particles.values() if active_ids is None or p.drone_id in active_ids]
         self._build_routes(particles)
+        strategy = self.config.search_strategy if self.external_waypoints is None else "external"
+        self.mark_seen(particles)
         targets = {}
         if self.gbest_fitness > 0 and self.elapsed_seconds-self.gbest_timestamp > 30:
             self.reset_gbest()
@@ -303,29 +533,68 @@ class PSOEngine:
             evidence_target = (c["lat"], c["lon"])
         elif self.gbest_fitness > .3 and not self.discovered_fire_clusters:
             evidence_target = (self.gbest_lat, self.gbest_lon)
+        inspect_points, inspect_alt = {}, {}
         if evidence_target:
             ranked = sorted(particles, key=lambda p: math.hypot(
                 p.lat-evidence_target[0], (p.lon-evidence_target[1])*math.cos(math.radians(p.lat))))
-            inspectors = {p.drone_id for p in ranked[:min(2, len(particles))]}
+            pair = ranked[:min(2, len(particles))]
+            inspectors = {p.drone_id for p in pair}
+            if len(pair) == 2:
+                # İki inceleyici aynı noktaya yığılmaz: olayın iki karşı yanında, farklı irtifada durur.
+                # Kamera ayak izi 35 m'de ~31 m yarıçaplı olduğundan olay iki kameranın da içinde kalır.
+                scale = self.METERS_PER_DEGREE * math.cos(math.radians(evidence_target[0]))
+                ex = (pair[0].lon-evidence_target[1])*scale
+                ey = (pair[0].lat-evidence_target[0])*self.METERS_PER_DEGREE
+                norm = math.hypot(ex, ey)
+                ux, uy = (ex/norm, ey/norm) if norm > 1 else (1.0, 0.0)
+                so = self.config.inspect_standoff_m
+                for sign, q in ((1, pair[0]), (-1, pair[1])):
+                    inspect_points[q.drone_id] = (evidence_target[0]+sign*uy*so/self.METERS_PER_DEGREE,
+                                                  evidence_target[1]+sign*ux*so/scale)
+                inspect_alt[pair[1].drone_id] = self.config.inspect_alt_step_m
+        goal_drones = set()
+        if strategy == "adaptive":
+            goal_drones = {p.drone_id for p in particles} - inspectors
+            self._assign_goals(particles, inspectors)
+        elif strategy == "hybrid":
+            goal_drones = {p.drone_id for p in particles
+                           if self.sweeps_done.get(p.drone_id, 0) >= 1} - inspectors
+            ember_only = self.config.hybrid_revisit == "ember"
+            if ember_only and not self._known_fires():
+                goal_drones = set()                         # yangın bilinmiyor: şeritler en hızlı tarama
+            if goal_drones:
+                self._assign_goals(particles, inspectors, only=goal_drones, ember_only=ember_only)
         for p in particles:
             scale = self.METERS_PER_DEGREE * math.cos(math.radians(p.lat))
             route = self.routes[p.drone_id]
             idx = self.route_indices[p.drone_id] % len(route)
             target = route[idx]
             inspect = p.drone_id in inspectors
+            goal_mode = not inspect and p.drone_id in goal_drones and p.drone_id in self.goals
+            if goal_mode:
+                target = self.goals[p.drone_id]
             if inspect:
-                target = evidence_target
+                target = inspect_points.get(p.drone_id, evidence_target)
             if self.external_waypoints is not None:
                 inspect = False
                 target = self.external_waypoints.get(p.drone_id, (p.lat, p.lon))
             dx, dy = (target[1]-p.lon)*scale, (target[0]-p.lat)*self.METERS_PER_DEGREE
             distance = math.hypot(dx, dy)
-            if self.external_waypoints is None and not inspect and distance < 12:
+            if self.external_waypoints is None and not inspect and not goal_mode and distance < 12:
                 self.route_indices[p.drone_id] = (idx+1) % len(route)
+                if self.route_indices[p.drone_id] == 0:                 # sektör bir kez tarandı
+                    self.sweeps_done[p.drone_id] = self.sweeps_done.get(p.drone_id, 0) + 1
                 target = route[(idx+1) % len(route)]
                 dx, dy = (target[1]-p.lon)*scale, (target[0]-p.lat)*self.METERS_PER_DEGREE
                 distance = math.hypot(dx, dy)
-            self.roles[p.drone_id] = "inspect" if inspect else "search"
+            role = "inspect" if inspect else "search"
+            if goal_mode and strategy == "hybrid":
+                role = "revisit"
+                if self._cov is not None:
+                    gi, gj = self._cell(*self._xy(*target))
+                    if self.ember_risk()[gi, gj] > 0:
+                        role = "ember"
+            self.roles[p.drone_id] = role
             key = (tuple(target), tuple((z.id,tuple(z.coordinates),z.min_alt,z.max_alt) for z in self.geofence_mgr.get_all_zones()))
             cached = self.detours.get(p.drone_id)
             if cached and cached[0] == key:
@@ -344,6 +613,10 @@ class PSOEngine:
                 self.roles[p.drone_id] = "blocked"
                 if not inspect:
                     self.route_indices[p.drone_id] = (idx+1) % len(route)
+                    if goal_mode and p.drone_id in self.goals:
+                        # Ulaşılamayan hedef: hücreyi "görülmüş" say ve hemen yeni hedef seç
+                        gi, gj = self._cell(*self._xy(*self.goals.pop(p.drone_id)))
+                        self._cov["last_seen"][gi, gj] = self.elapsed_seconds
             self.waypoints[p.drone_id] = list(target)
             # Arrival controller in metres; no forced minimum speed near a target.
             speed = min(6 if inspect else 10, self.capabilities.get(p.drone_id, {}).get("max_speed_ms", 10), self.config.max_speed, distance*.35)
@@ -371,7 +644,8 @@ class PSOEngine:
                     strength = min(25, (self.config.safe_drone_distance_m*3.0-dist)*.8)
                     vx += ex/dist*strength
                     vy += ey/dist*strength
-            target_alt = self.config.inspect_altitude if inspect else self.capabilities.get(p.drone_id, {}).get("search_altitude_m", self.config.search_altitude)
+            target_alt = (self.config.inspect_altitude + inspect_alt.get(p.drone_id, 0.0)) if inspect else \
+                self.capabilities.get(p.drone_id, {}).get("search_altitude_m", self.config.search_altitude)
             target_alt = min(target_alt, self.capabilities.get(p.drone_id, {}).get("max_altitude_m", 120))
             target_alt = max(self.config.min_altitude, min(self.config.max_altitude, target_alt))
             vz = max(-2, min(2, (target_alt-p.alt)*.5))
@@ -392,6 +666,8 @@ class PSOEngine:
                 vx = vy = 0.0
                 if not inspect:
                     self.route_indices[p.drone_id] = (idx+1) % len(route)
+                    if goal_mode:
+                        self.goal_time[p.drone_id] = -1e9
                 self.roles[p.drone_id] = "blocked"
             if self.aoi_bounds:
                 b = self.aoi_bounds

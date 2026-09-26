@@ -26,7 +26,18 @@ const markers = new Map(),
   tracks = new Map(),
   incidentMarkers = new Map(),
   sectorLayers = new Map();
-let zonesLayer, toastTimer;
+let zonesLayer, toastTimer, coverageLayer, coverageKey = "";
+const controlNames = {
+  observe: "GÖZLEM",
+  ready: "HUB KONTROLÜNDE · hazır",
+  takeoff: "HUB KONTROLÜNDE · kalkış",
+  mission: "HUB KONTROLÜNDE · görevde",
+  hold: "YERİNDE TUTULUYOR",
+  rtl: "EVE DÖNÜŞ (RTL)",
+  landing: "İNİŞ",
+  pilot_override: "PİLOT DEVRALDI",
+  lost: "BAĞLANTI KOPTU · otopilot failsafe",
+};
 const colors = [
   "#61d6cb",
   "#86b7f3",
@@ -36,7 +47,9 @@ const colors = [
   "#93c5a0",
 ];
 const roles = {
-  search: "Sektör tarama",
+  search: "Şerit tarama",
+  revisit: "Yeniden ziyaret (en eski alan)",
+  ember: "Kıvılcım bölgesi devriyesi",
   inspect: "Kanıt inceleme",
   blocked: "Rota engelli",
   standby: "Beklemede",
@@ -139,7 +152,26 @@ function renderFleet() {
         const stale =
           d.type !== "SIMULATED" &&
           (d.telemetry_age_s === null || d.telemetry_age_s > 3);
-        return `<article class="drone-card ${selected === id ? "selected" : ""}"><div class="drone-title"><button data-select="${esc(id)}">${esc(id)}</button><span class="type-label">${d.type === "SIMULATED" ? "SİMÜLASYON" : d.type === "VOLUNTEER" ? "GÖNÜLLÜ" : "MAVLINK"}</span></div><div class="telemetry-grid"><div><small>İRTİFA</small><strong>${d.alt.toFixed(0)} m</strong></div><div><small>HIZ</small><strong>${d.speed.toFixed(1)} m/s</strong></div><div><small>BATARYA</small><strong style="color:${d.battery <= 20 ? "var(--red)" : "inherit"}">%${d.battery.toFixed(0)}</strong></div></div><div class="drone-bottom"><span>${stale ? "Telemetri bekleniyor" : d.safety_hold ? "EMNİYET BEKLEMESİ" : d.mode === "RTL" ? "Üsse dönüş" : d.mode === "LANDING" ? "İniş" : roles[d.role] || esc(d.mode)}</span><span>${d.control_enabled ? `<button data-rtl="${esc(id)}" title="Simülasyon drone’unu üsse çağır">RTL</button> <button data-land="${esc(id)}" title="Simülasyon drone’unu indir">İn</button>` : ""} <button data-remove="${esc(id)}" aria-label="${esc(id)} filodan çıkar">×</button></span></div></article>`;
+        const ap = d.autopilot;
+        let autopilotHtml = "";
+        if (ap) {
+          const badgeClass = ap.control_enabled ? "" : ["pilot_override", "lost", "rtl", "landing"].includes(ap.control_state) ? "warn" : "off";
+          autopilotHtml = `<div class="autopilot-line"><span class="control-badge ${badgeClass}">${controlNames[ap.control_state] || esc(ap.control_state)}</span> ${esc(ap.autopilot)} · sistem ${esc(ap.system_id)} · mod ${esc(ap.flight_mode)} · GPS fix ${ap.gps_fix} / ${ap.gps_sats} uydu</div>`;
+          if (d.preflight)
+            autopilotHtml += `<ul class="preflight">${d.preflight.map((c) => `<li class="${c.ok ? "ok" : "bad"}"><span>${esc(c.label)}</span><small>${esc(c.detail)}</small></li>`).join("")}</ul>`;
+          if (ap.messages && ap.messages.length)
+            autopilotHtml += `<div class="autopilot-line">Otopilot: ${esc(ap.messages.at(-1))}</div>`;
+        }
+        const physical = d.type === "MAVLINK";
+        const controlButton = physical
+          ? ap && ap.control_enabled
+            ? `<button data-control="${esc(id)}" data-enable="0" title="Hub komut göndermeyi keser; araç yerinde tutulur">Kontrolü bırak</button>`
+            : `<button data-control="${esc(id)}" data-enable="1" title="Uçuş öncesi kontroller geçerse hub bu drone’u sürüye katar">Hub kontrolüne al</button>`
+          : "";
+        const safety = d.control_enabled || physical
+          ? `<button data-rtl="${esc(id)}" title="Kalkış noktasına dön (RTL)">RTL</button> <button data-land="${esc(id)}" title="Olduğu yere in">İn</button>`
+          : "";
+        return `<article class="drone-card ${selected === id ? "selected" : ""}"><div class="drone-title"><button data-select="${esc(id)}">${esc(id)}</button><span class="type-label">${d.type === "SIMULATED" ? "SİMÜLASYON" : d.type === "VOLUNTEER" ? "GÖNÜLLÜ" : "OTOPİLOT"}</span></div><div class="telemetry-grid"><div><small>İRTİFA</small><strong>${d.alt.toFixed(0)} m</strong></div><div><small>HIZ</small><strong>${d.speed.toFixed(1)} m/s</strong></div><div><small>BATARYA</small><strong style="color:${d.battery <= 20 ? "var(--red)" : "inherit"}">%${d.battery.toFixed(0)}</strong></div></div>${autopilotHtml}<div class="drone-bottom"><span>${stale ? "Telemetri bekleniyor" : d.safety_hold ? "EMNİYET BEKLEMESİ" : d.mode === "RTL" ? "Üsse dönüş" : d.mode === "LANDING" ? "İniş" : d.mode === "TAKEOFF" ? "Kalkış" : roles[d.role] || esc(d.mode)}</span><span>${controlButton} ${safety} <button data-remove="${esc(id)}" aria-label="${esc(id)} filodan çıkar">×</button></span></div></article>`;
       })
       .join("") || '<div class="empty">Filoya bir drone ekleyin.</div>';
 }
@@ -245,6 +277,7 @@ function renderMap() {
           );
       });
   }
+  renderCoverage();
   const newZoneKey = JSON.stringify(state.geofence_zones);
   if (newZoneKey !== zoneKey) {
     zoneKey = newZoneKey;
@@ -267,6 +300,38 @@ function renderMap() {
         )
         .join("") || "Kapalı alan yok.";
   }
+}
+function renderCoverage() {
+  const cov = state.coverage;
+  const show = $("coverage-toggle").checked && cov;
+  const key = show ? JSON.stringify([cov.age, cov.bounds]) : "off";
+  if (key === coverageKey) return;
+  coverageKey = key;
+  if (coverageLayer) {
+    map.removeLayer(coverageLayer);
+    coverageLayer = null;
+  }
+  if (!show) return;
+  const canvas = document.createElement("canvas");
+  canvas.width = cov.cols;
+  canvas.height = cov.rows;
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(cov.cols, cov.rows);
+  for (let r = 0; r < cov.rows; r++)
+    for (let c = 0; c < cov.cols; c++) {
+      const age = cov.age[r * cov.cols + c];
+      const i = ((cov.rows - 1 - r) * cov.cols + c) * 4;      // satır 0 = güney
+      img.data[i] = 245;
+      img.data[i + 1] = 158;
+      img.data[i + 2] = 60;
+      img.data[i + 3] = Math.round(110 * age);               // az önce görülen şeffaf, uzun süredir görülmeyen turuncu
+    }
+  ctx.putImageData(img, 0, 0);
+  const b = cov.bounds;
+  coverageLayer = L.imageOverlay(canvas.toDataURL(), [[b.min_lat, b.min_lon], [b.max_lat, b.max_lon]], {
+    opacity: 0.8, interactive: false,
+  }).addTo(map);
+  coverageLayer.getElement() && (coverageLayer.getElement().style.imageRendering = "pixelated");
 }
 function renderIncidents() {
   const incidents = state.fire_clusters;
@@ -319,6 +384,16 @@ function render(next) {
   $("mission-time").textContent =
     `${String(Math.floor(state.mission_elapsed_seconds / 60)).padStart(2, "0")}:${String(state.mission_elapsed_seconds % 60).padStart(2, "0")}`;
   $("base-name").textContent = state.base_station.name;
+  const w = state.wind;
+  const names = ["K", "KD", "D", "GD", "G", "GB", "B", "KB"];
+  const dirName = (deg) => names[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+  $("wind-status").textContent = w.speed_ms >= 1
+    ? `Şu an: ${w.speed_ms.toFixed(1)} m/s, ${dirName(w.direction_deg)} yönünden esiyor → kıvılcımlar ${dirName(w.direction_deg + 180)} yönüne taşınır (artçı yangın önceliği orada).`
+    : "Şu an: rüzgâr yok / girilmedi (artçı önceliği yalnızca yangın çevresinde).";
+  if (document.activeElement?.form !== $("wind-form")) {
+    $("wind-form").elements.speed.value = w.speed_ms;
+    $("wind-form").elements.direction.value = Math.round(w.direction_deg);
+  }
   $("last-update").textContent =
     `Son telemetri ${new Date().toLocaleTimeString("tr-TR")}`;
   $("model-note").textContent =
@@ -327,15 +402,22 @@ function render(next) {
       : state.readiness.fire_model_loaded
         ? "Yangın modeli yüklü. Sentetik kamera, saha başarımının kanıtı değildir."
         : "Yangın modeli yüklenemedi. Kamera tespiti kullanılamıyor.";
+  const controlled = Object.values(state.drones).filter((x) => x.type === "MAVLINK" && x.control_enabled).length;
+  const autopilots = Object.values(state.drones).filter((x) => x.type === "MAVLINK").length;
+  $("environment").textContent = controlled
+    ? `OTOPİLOT KONTROLÜ · ${controlled} ARAÇ`
+    : autopilots ? "SİMÜLASYON + OTOPİLOT GÖZLEMİ" : "SİMÜLASYON + PİLOT DESTEĞİ";
   $("readiness").textContent = state.readiness.control_error
     ? `Kontrol uyarısı: ${state.readiness.control_error}`
-    : "Fiziksel otonom uçuş doğrulanmadı • Gönüllü katılım: pilot rehberliği";
+    : controlled
+      ? `${controlled} otopilot hub kontrolünde (ArduPilot; SITL ile doğrulandı, saha kabulü operatörün sorumluluğunda) • Kapsama: %${Math.round(100 * (state.coverage?.seen_ratio || 0))}`
+      : `Simülasyon + otopilot gözlemi • Gönüllü katılım: pilot rehberliği • Kapsama: %${Math.round(100 * (state.coverage?.seen_ratio || 0))}`;
   if (!selected || !state.drones[selected])
     selectDrone(Object.keys(state.drones)[0] || null);
   const d = state.drones[selected];
   if (d) {
     $("camera-label").textContent =
-      d.type === "SIMULATED" ? "SENTETİK KAMERA" : "HARİCİ KAMERA";
+      d.type === "SIMULATED" ? "SENTETİK KAMERA" : d.type === "MAVLINK" ? "OTOPİLOT KAMERASI" : "HARİCİ KAMERA";
     $("camera-status").textContent =
       `${d.alt.toFixed(1)} m · ${d.speed.toFixed(1)} m/s · skor ${d.current_score.toFixed(2)}`;
   }
@@ -447,7 +529,7 @@ setInterval(() => {
 }, 1000);
 $("start").onclick = action(async () => {
   await api("/api/mission/start");
-  toast("Simülasyon ve uygun gönüllü rehberliği başladı.");
+  toast("Görev başladı: simülasyon ve hub kontrolündeki otopilotlar kalkıyor.");
 });
 $("pause").onclick = action(async () => {
   await api("/api/mission/pause");
@@ -456,11 +538,11 @@ $("pause").onclick = action(async () => {
 $("rtl").onclick = action(async () => {
   if (
     confirm(
-      "Simülasyon filosu üsse dönsün mü? Gönüllü pilotlar kendi dönüşünü yönetir.",
+      "Hub kontrolündeki tüm drone'lar üsse dönsün mü (RTL)? Gönüllü pilotlar kendi dönüşünü yönetir.",
     )
   ) {
     await api("/api/mission/rtl");
-    toast("Simülasyon filosuna RTL verildi.");
+    toast("Hub kontrolündeki filoya RTL verildi.");
   }
 });
 $("mission-kind").onchange = action(async (e) => {
@@ -472,6 +554,13 @@ $("fit-map").onclick = () => {
   if (aoi) map.fitBounds(aoi.getBounds(), { padding: [25, 25] });
 };
 $("sectors-toggle").onchange = () => state && renderMap();
+$("coverage-toggle").onchange = () => state && renderMap();
+$("wind-form").onsubmit = action(async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  await api("/api/mission/set_wind", { speed_ms: Number(f.elements.speed.value), direction_deg: Number(f.elements.direction.value) });
+  toast("Rüzgâr güncellendi.");
+});
 document
   .querySelectorAll("[data-tool]")
   .forEach((b) => (b.onclick = () => beginDraw(b.dataset.tool)));
@@ -487,13 +576,24 @@ $("fleet").onclick = action(async (e) => {
     selectDrone(b.dataset.select);
     return;
   }
+  if (b.dataset.control) {
+    const enable = b.dataset.enable === "1";
+    if (enable && !confirm(`${b.dataset.control} hub kontrolüne alınsın mı? Görev aktifse drone kalkar ve sürüye katılır. Pilot kumandadan modu değiştirerek her an devralabilir.`)) return;
+    b.disabled = true;
+    const r = await api(`/api/drone/${encodeURIComponent(b.dataset.control)}/control`, { enable });
+    toast(r.control_enabled ? `${b.dataset.control} hub kontrolünde.` : r.failed ? `Kontrol verilmedi: ${r.failed.join(", ")}` : `${b.dataset.control}: kontrol bırakıldı, araç yerinde tutuluyor.`, !r.control_enabled && !!r.failed);
+    return;
+  }
   if (b.dataset.rtl)
     await api(`/api/drone/${encodeURIComponent(b.dataset.rtl)}/rtl`);
   if (b.dataset.land)
     await api(`/api/drone/${encodeURIComponent(b.dataset.land)}/land`);
+  const flyingAutopilot = b.dataset.remove && state.drones[b.dataset.remove]?.type === "MAVLINK" && state.drones[b.dataset.remove]?.is_in_air;
   if (
     b.dataset.remove &&
-    confirm(`${b.dataset.remove} filodan çıkarılsın mı?`)
+    confirm(flyingAutopilot
+      ? `${b.dataset.remove} HAVADA. Filodan çıkarılırsa hub bağlantısı kesilir ve otopilot kendi bağlantı kaybı davranışını (genelde RTL) uygular. Devam edilsin mi?`
+      : `${b.dataset.remove} filodan çıkarılsın mı?`)
   ) {
     await api(
       `/api/drone/${encodeURIComponent(b.dataset.remove)}`,
@@ -549,8 +649,15 @@ $("add-drone").onclick = () => {
   $("join-result").textContent = "";
   $("drone-dialog").showModal();
 };
-$("drone-type").onchange = (e) =>
-  ($("mavlink-field").hidden = e.target.value !== "mavlink");
+const droneTypeNotes = {
+  simulated: "Simülasyon drone’u eğitim ve tatbikat içindir; gerçek drone’larla aynı planlayıcıyla uçar.",
+  volunteer: "Gönüllü pilot gerçek telemetriyle katılır. Hub rota önerir; pilot kendi drone’unun kontrolünü korur.",
+  mavlink: "Otopilotlu drone (ArduPilot / PX4) MAVLink ile bağlanır. Konum otopilottan okunur; enlem/boylam alanları kullanılmaz.",
+};
+$("drone-type").onchange = (e) => {
+  $("mavlink-field").hidden = e.target.value !== "mavlink";
+  $("drone-type-note").textContent = droneTypeNotes[e.target.value] || "";
+};
 $("drone-form").onsubmit = action(async (e) => {
   e.preventDefault();
   const f = e.target;
@@ -568,10 +675,15 @@ $("drone-form").onsubmit = action(async (e) => {
     ]),
   };
   if (f.elements.drone_id.value) payload.drone_id = f.elements.drone_id.value;
-  if (payload.drone_type === "mavlink")
+  if (payload.drone_type === "mavlink") {
     payload.connection_string = f.elements.connection_string.value;
+    if (f.elements.target_system.value) payload.target_system = Number(f.elements.target_system.value);
+    payload.camera_url = f.elements.camera_url.value || null;
+    payload.synthetic_camera = f.elements.synthetic_camera.checked;
+    $("join-result").textContent = "Otopilota bağlanılıyor (heartbeat bekleniyor, en fazla 10 s)...";
+  }
   const d = await api("/api/swarm/add_drone", payload);
-  toast(`${d.drone_id} filoya eklendi.`);
+  toast(d.message || `${d.drone_id} filoya eklendi.`);
   $("drone-dialog").close();
 });
 $("base-settings").onclick = () => {
@@ -618,8 +730,20 @@ async function refreshScenarioTruth() {
     if (!response.ok) return;
     const data = await response.json();
     truthLayer.clearLayers();
-    $("scenario-status").textContent = `${Math.floor(data.simulation_seconds)} s • ` + data.targets.map(t =>
-      `${t.id}: ${!t.active ? "bekliyor (" + Math.ceil(t.ignition_s-data.simulation_seconds) + " s)" : t.nearby_sensor_candidate ? "yakında sensör adayı var" : "henüz sensör adayı yok"}`).join(" | ");
+    const found = data.targets.filter((t) => t.delay_s !== null && t.delay_s !== undefined);
+    const first = found.filter((t) => !t.aftershock).map((t) => t.delay_s);
+    const after = found.filter((t) => t.aftershock).map((t) => t.delay_s);
+    $("scenario-status").textContent = `Görev saati ${Math.floor(data.simulation_seconds)} s • ${found.length}/${data.targets.length} hedef bulundu` +
+      (first.length ? ` • ilk yangın ${Math.min(...first).toFixed(0)} s` : "") +
+      (after.length ? ` • artçı yangın tutuşmadan ${Math.min(...after).toFixed(0)} s sonra` : "");
+    $("drill-table").hidden = !data.targets.length;
+    $("drill-table").querySelector("tbody").innerHTML = data.targets.map((t) => {
+      const waiting = !t.active;
+      const delay = t.delay_s === null || t.delay_s === undefined ? null : t.delay_s;
+      return `<tr><td>${esc(t.id)}</td><td>${t.aftershock ? "artçı" : "ilk"}</td><td>${t.ignition_s.toFixed(0)} s</td>` +
+        `<td>${waiting ? `${Math.ceil(t.ignition_s - data.simulation_seconds)} s sonra tutuşacak` : delay === null ? "aranıyor" : t.detected_s.toFixed(0) + " s"}</td>` +
+        `<td class="${delay === null ? (waiting ? "" : "miss") : "fast"}">${delay === null ? "–" : delay.toFixed(0) + " s"}</td><td>${esc(t.detected_by || "")}</td></tr>`;
+    }).join("");
     if (!$("truth-toggle").checked) return;
     for (const t of data.targets) L.circleMarker([t.lat,t.lon], {
       radius: 10, color: t.nearby_sensor_candidate ? "#67e6a5" : "#e6a4ff",

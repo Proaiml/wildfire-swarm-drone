@@ -14,6 +14,69 @@ import cv2
 from hardware.drone_base import BaseDrone, DroneMode, DroneType, DroneTelemetry
 
 
+class SyntheticCamera:
+    """Tatbikat kamerası: gerçek bir otopilotla (ör. ArduPilot SITL) uçan araca, operatörün
+    gizli tatbikat hedeflerini aşağı bakan bir kamera gibi gösterir. Yalnızca tatbikat içindir;
+    görüntü üstünde "SENTETİK" etiketi bulunur, gerçek kameranın yerine geçmez."""
+
+    def __init__(self, targets_provider):
+        self.targets_provider = targets_provider      # callable -> [(lat, lon, intensity), ...]
+        self.drone_id = "synthetic-camera"
+        self.ASSET_DIR = SimulatedDrone.ASSET_DIR
+        self.images = SimulatedDrone._load_sample_images(self)
+        self.texture = SimulatedDrone._generate_forest_background(self)
+
+    def __call__(self, telemetry, capabilities) -> Optional[np.ndarray]:
+        if not telemetry.is_in_air:
+            return None
+        return render_synthetic_frame(telemetry.lat, telemetry.lon, telemetry.alt,
+                                      capabilities.get("camera_hfov_deg", 84), self.targets_provider(),
+                                      self.images, self.texture, heading_deg=getattr(telemetry, "heading", 0.0))
+
+
+FIRE_EXTENT_M = 30.0   # sentetik yangının yerdeki genişliği
+
+
+def render_synthetic_frame(lat, lon, alt, hfov_deg, fire_targets, images, texture, heading_deg=0.0) -> np.ndarray:
+    """Aşağı bakan (nadir) kamera karesi.
+
+    Görüş alanındaki her yangın, drone'a göre gerçek konumunda ve irtifaya göre gerçek boyutunda
+    çizilir; kare drone'un burun yönüne (heading) göre döner. Böylece algılayıcının pikselden
+    GPS'e dönüşümü tatbikatta da gerçekten sınanır. Hangi fotoğrafın kullanılacağı hedefin
+    konumundan belirlenir (listedeki sırası değişse de aynı kalır)."""
+    frame = texture.copy()
+    if not images or alt <= 1.0:
+        return frame
+    h, w = frame.shape[:2]
+    half_h = math.radians(hfov_deg) / 2.0
+    half_v = math.radians(hfov_deg * h / float(w)) / 2.0
+    m_per_deg_lon = SimulatedDrone.METERS_PER_DEGREE * math.cos(math.radians(lat))
+    yaw = math.radians(heading_deg or 0.0)
+    c, s_ = math.cos(yaw), math.sin(yaw)
+    for f_lat, f_lon, _intensity in fire_targets:
+        east = (f_lon - lon) * m_per_deg_lon
+        north = (f_lat - lat) * SimulatedDrone.METERS_PER_DEGREE
+        # dünya (doğu, kuzey) -> kamera (sağ, ileri); fire_detector'daki dönüşümün tersi
+        right = c * east - s_ * north
+        ahead = s_ * east + c * north
+        ang_x, ang_y = math.atan2(right, alt), math.atan2(ahead, alt)
+        if abs(ang_x) > half_h * 1.15 or abs(ang_y) > half_v * 1.15:
+            continue
+        px = int(round(w / 2 + (ang_x / half_h) * w / 2))
+        py = int(round(h / 2 - (ang_y / half_v) * h / 2))
+        ground_w = 2 * alt * math.tan(half_h)
+        pw = max(24, int(round(FIRE_EXTENT_M / ground_w * w)))
+        ph = max(18, int(round(pw * 0.75)))
+        key = int(abs(f_lat * 1.0e5) + abs(f_lon * 1.0e5))
+        patch = cv2.resize(images[key % len(images)], (pw, ph))
+        x0, y0 = px - pw // 2, py - ph // 2
+        xa, ya, xb, yb = max(0, x0), max(0, y0), min(w, x0 + pw), min(h, y0 + ph)
+        if xa >= xb or ya >= yb:
+            continue
+        frame[ya:yb, xa:xb] = patch[ya - y0:yb - y0, xa - x0:xb - x0]
+    return frame
+
+
 class SimulatedDrone(BaseDrone):
     """
     Yazılım testleri ve görselleştirme için gerçekçi drone simülatörü.
@@ -57,17 +120,25 @@ class SimulatedDrone(BaseDrone):
         self.fire_images = self._load_sample_images()
         self.forest_texture = self._generate_forest_background()
 
+    # Proje kökü: sunucu hangi klasörden başlatılırsa başlatılsın resimler bulunur.
+    # (Önceden göreli yol kullanılıyordu; proje dışından başlatınca kamera hiç yangın görmüyordu.)
+    ASSET_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     def _load_sample_images(self) -> List[np.ndarray]:
-        """Çalışma dizinindeki gerçek yangın/duman resimlerini önbelleğe alır."""
+        """Proje kökündeki gerçek yangın/duman resimlerini önbelleğe alır."""
         imgs = []
-        for filename in ["fire.jpg", "mana.jpg", "smoke.png"]:
-            if os.path.exists(filename):
+        # smoke.png modelde (best.pt) tespit üretmiyor; tatbikat kamerası yalnızca modelin gördüğü karelerle çalışır
+        for filename in ["fire.jpg", "mana.jpg"]:
+            path = os.path.join(self.ASSET_DIR, filename)
+            if os.path.exists(path):
                 try:
-                    img = cv2.imread(filename)
+                    img = cv2.imread(path)
                     if img is not None:
                         imgs.append(img)
                 except Exception:
                     pass
+        if not imgs:
+            print(f"[{self.drone_id}] UYARI: sentetik kamera için yangın resmi bulunamadı ({self.ASSET_DIR})")
         return imgs
 
     def _generate_forest_background(self) -> np.ndarray:
@@ -241,44 +312,12 @@ class SimulatedDrone(BaseDrone):
     def get_telemetry(self) -> DroneTelemetry:
         return self.telemetry
 
-    def get_camera_frame(self) -> Optional[np.ndarray]:
+    def get_camera_frame(self, pose=None) -> Optional[np.ndarray]:
         """
-        Drone'un anlık konumuna göre kamera görüntüsü üretir.
-        Eğer bir yangın odağının üzerindeyse/yakınındaysa gerçek yangın resmini döndürür.
+        Drone'un konumuna göre kamera görüntüsü üretir. pose verilirse kare tam o telemetri
+        kopyasından çizilir: algılayıcı aynı pozla GPS'e çevirir (dönüşte heading ters dönse bile).
         """
-        cos_lat = math.cos(math.radians(self.telemetry.lat))
-        m_per_deg_lon = self.METERS_PER_DEGREE * cos_lat
-
-        # En yakın yangın odağını bul
-        closest_dist = 999999.0
-        closest_intensity = 0.0
-        closest_index = 0
-
-        for target_index, (f_lat, f_lon, intensity) in enumerate(self.fire_targets):
-            dx = (self.telemetry.lon - f_lon) * m_per_deg_lon
-            dy = (self.telemetry.lat - f_lat) * self.METERS_PER_DEGREE
-            dist = math.hypot(dx, dy)
-            if dist < closest_dist:
-                closest_dist = dist
-                closest_intensity = intensity
-                closest_index = target_index
-
-        # Görüş Alanı (FOV) yarıçapı irtifaya bağlıdır: R = Alt * tan(FOV/2)
-        fov_radius = self.telemetry.alt * math.tan(math.radians(self.capabilities["camera_hfov_deg"] / 2))
-
-        if closest_dist < fov_radius and len(self.fire_images) > 0:
-            # Yangın görüş alanında!
-            # Resimlerden birini seç ve mesafeye göre harmanla
-            img_idx = closest_index % len(self.fire_images)
-            fire_img = self.fire_images[img_idx].copy()
-
-            # 640x480 boyutuna getir
-            fire_img = cv2.resize(fire_img, (640, 480))
-
-            # Merkeze olan uzaklığa göre karıştır
-            blend_ratio = max(0.2, min(1.0, 1.0 - (closest_dist / fov_radius)))
-            frame = cv2.addWeighted(fire_img, blend_ratio, self.forest_texture, 1.0 - blend_ratio, 0)
-            return frame
-        else:
-            # Yangın yok, sadece orman zemini
-            return self.forest_texture.copy()
+        t = pose or self.telemetry
+        return render_synthetic_frame(t.lat, t.lon, t.alt,
+                                      self.capabilities["camera_hfov_deg"], self.fire_targets,
+                                      self.fire_images, self.forest_texture, heading_deg=t.heading)
